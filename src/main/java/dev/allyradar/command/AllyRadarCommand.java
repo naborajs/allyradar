@@ -14,8 +14,6 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -72,19 +70,21 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             case "create" -> {
                 requireArgs(args, 2);
                 final TeamSummary team = plugin.repository().createTeam(player.getUniqueId(), join(args, 1), plugin.maximumTeamSize());
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Created team " + team.name() + ".");
             }
             case "invite" -> {
                 requireArgs(args, 2);
                 final OfflinePlayer target = plugin.getServer().getOfflinePlayer(args[1]);
                 plugin.repository().invite(player.getUniqueId(), target.getUniqueId(), args[1],
-                        Duration.ofHours(plugin.getConfig().getLong("invitation-expiration-hours", 48)),
+                        Duration.ofHours(plugin.invitationExpirationHours()),
                         plugin.maximumTeamSize());
                 player.sendMessage("[AllyRadar] Invitation sent to " + args[1] + ".");
             }
             case "accept" -> {
                 requireArgs(args, 2);
                 final TeamSummary team = plugin.repository().accept(player.getUniqueId(), join(args, 1), player.getName(), plugin.maximumTeamSize());
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Joined " + team.name() + ".");
             }
             case "deny" -> {
@@ -94,22 +94,26 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             }
             case "leave" -> {
                 plugin.repository().leave(player.getUniqueId());
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] You left your team.");
             }
             case "kick" -> {
                 requireArgs(args, 2);
                 plugin.repository().kick(player.getUniqueId(), offline(args[1]).getUniqueId());
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Player removed from the team.");
             }
             case "transfer" -> {
                 requireArgs(args, 2);
                 plugin.repository().transfer(player.getUniqueId(), offline(args[1]).getUniqueId());
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Ownership transferred.");
             }
             case "info" -> teamInfo(player);
             case "list" -> teamList(player);
             case "disband" -> {
                 plugin.repository().disband(player.getUniqueId());
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Team disbanded.");
             }
             case "settings" -> teamSettings(player, args);
@@ -129,16 +133,19 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase()) {
             case "on" -> {
                 plugin.repository().setRadarEnabled(player.getUniqueId(), true);
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Radar receiving enabled.");
             }
             case "off" -> {
                 plugin.repository().setRadarEnabled(player.getUniqueId(), false);
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Radar receiving disabled.");
             }
             case "visibility" -> {
                 requireArgs(args, 2);
                 final VisibilityMode mode = VisibilityMode.parse(args[1]);
                 plugin.repository().setVisibility(player.getUniqueId(), mode);
+                plugin.clearCaches();
                 player.sendMessage("[AllyRadar] Location sharing set to " + mode + ".");
             }
             case "who" -> radarWho(player);
@@ -185,6 +192,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             default -> throw new IllegalArgumentException("Use on or off.");
         };
         plugin.repository().setTeamRadar(player.getUniqueId(), enabled);
+        plugin.clearCaches();
         player.sendMessage("[AllyRadar] Team radar " + (enabled ? "enabled" : "disabled") + ". Individual PRIVATE settings still override it.");
     }
 
