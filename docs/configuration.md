@@ -23,3 +23,5 @@ debug: false
 - `radar-max-distance`: maximum same-dimension tracking distance.
 - `public-radar-enabled`: explicit server opt-in for PUBLIC sharing.
 - `debug`: reserved for future non-sensitive diagnostics.
+
+Unsafe low values are clamped at startup: team size and invitation lifetime cannot be below their safe minimums, and radar interval and range cannot be zero or negative. Startup-only values are not changed by `/allyradar reload`.
