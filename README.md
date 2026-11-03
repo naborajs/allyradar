@@ -5,6 +5,8 @@
 
 AllyRadar is an open-source Paper plugin for persistent teams and consent-based teammate radar. It is designed around one rule: a player controls whether their location can be shared, and privacy is enforced before any radar output is created.
 
+**AI assistant and server operator quick start:** read [`AGENT_GUIDE.md`](AGENT_GUIDE.md). It is the operational guide for finding the right files, building the JAR, installing it on an isolated Paper server, controlling it, testing privacy, backing it up, upgrading it, and reporting verified status.
+
 > **Status:** version `1.0.0` is a release candidate for isolated server testing. The project compiles and automated tests pass; live Paper loading and multiplayer smoke testing still need to be completed by a server operator.
 
 ## Highlights
@@ -47,6 +49,8 @@ See [`docs/compatibility.md`](docs/compatibility.md) for verified versus unverif
 ```
 
 The local artifact is `build/libs/AllyRadar-1.0.0.jar`. Never copy a development database, server world, or private configuration into this repository. Do not install this release on a production server without an isolated verification pass and explicit approval.
+
+For a copy-and-run operator procedure with shell variables, console commands, player commands, backup steps, rollback steps, and an acceptance checklist, use [`AGENT_GUIDE.md`](AGENT_GUIDE.md).
 
 ## Commands
 
