@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AllyRepositoryTest {
@@ -36,6 +37,20 @@ class AllyRepositoryTest {
             assertTrue(reopened.teamOf(member).isPresent());
             assertEquals(VisibilityMode.PRIVATE, reopened.preferences(member).visibility());
             assertFalse(reopened.preferences(UUID.randomUUID()).radarEnabled());
+        }
+    }
+
+    @Test
+    void expiredInvitationCannotBeAccepted() {
+        final File database = temporaryDirectory.resolve("expired.db").toFile();
+        final UUID owner = UUID.randomUUID();
+        final UUID invitee = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            repository.createTeam(owner, "Explorers", 10);
+            repository.invite(owner, invitee, "Invitee", Duration.ofMillis(-1), 10);
+            assertThrows(IllegalArgumentException.class,
+                    () -> repository.accept(invitee, "Explorers", "Invitee", 10));
+            assertFalse(repository.teamOf(invitee).isPresent());
         }
     }
 }
