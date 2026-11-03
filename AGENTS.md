@@ -43,6 +43,10 @@ Use conventional commit subjects. This project follows the maintainer's rule: **
 
 Review `SECURITY.md` before changing location or membership behavior. Do not install, deploy, restart, or configure AllyRadar on a production server without explicit approval.
 
+## Open-source repository
+
+The public-repository standards are in `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `LICENSE`. GitHub automation lives under `.github/`: CI builds and tests, release automation is tag-driven, dependency review checks pull requests, and Dependabot updates Gradle and action dependencies. Do not push a release tag without maintainer approval.
+
 ## Skills
 
 Load the relevant skill under `.opencode/skills/` before making architecture, Paper compatibility, privacy, security, testing, or release changes.
