@@ -10,6 +10,8 @@
 - Receiver radar preferences and owner-controlled team radar.
 - Filtered action-bar radar with direction and rounded distance.
 - Paper 26.3 build, automated unit tests, documentation, and CI workflow.
+- Open-source project governance: MIT license, contribution guide, code of conduct, issue forms, Dependabot, dependency review, and tagged-release automation.
+- In-memory radar authorization caches to avoid database reads during each refresh.
 
 ### Known limitations
 
