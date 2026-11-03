@@ -1,0 +1,10 @@
+database-file: allyradar.db
+max-team-size: 10
+invitation-expiration-hours: 48
+default-location-visibility: TEAM
+default-radar-enabled: true
+default-team-radar-enabled: true
+radar-update-interval-ticks: 20
+radar-max-distance: 1000.0
+public-radar-enabled: false
+debug: false
