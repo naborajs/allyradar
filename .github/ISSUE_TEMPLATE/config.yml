@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security or privacy vulnerability
+    url: https://github.com/naborajs/allyradar/security/advisories/new
+    about: Report location privacy, authorization, or security issues privately.
+  - name: Documentation
+    url: https://github.com/naborajs/allyradar/tree/main/docs
+    about: Read the installation, command, configuration, and compatibility guides first.
