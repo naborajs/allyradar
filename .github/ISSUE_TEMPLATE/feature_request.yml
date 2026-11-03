@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest a focused improvement to AllyRadar.
+title: "feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What would be easier or better for server administrators or players?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy and compatibility considerations
+      description: Explain who may see what information and which Paper versions are affected.
+    validations:
+      required: true
