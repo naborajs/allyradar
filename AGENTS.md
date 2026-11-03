@@ -4,6 +4,8 @@
 
 AllyRadar is a Java 25 Paper plugin targeting Paper 26.3. Development stays in this repository and never touches a live Minecraft server.
 
+For installation, server operation, AI-assisted control, acceptance testing, release gates, and the standard agent report, read `AGENT_GUIDE.md`.
+
 ## Architecture
 
 - `dev.allyradar.model` contains immutable, platform-independent values.
