@@ -1,0 +1,22 @@
+name: AllyRadar
+version: '${version}'
+main: dev.allyradar.AllyRadar
+api-version: '26.3'
+authors: [Naboraj Sarkar]
+description: Privacy-preserving team management and teammate radar for Paper.
+commands:
+  allyradar:
+    description: Manage AllyRadar and show radar status.
+    usage: /allyradar [help|reload]
+    aliases: [ar]
+  team:
+    description: Manage your AllyRadar team.
+    usage: /team <create|invite|accept|deny|leave|kick|transfer|info|list|disband|settings>
+  radar:
+    description: Configure your AllyRadar receiver and sharing preferences.
+    usage: /radar [on|off|visibility|status|who]
+permissions:
+  allyradar.use:
+    default: true
+  allyradar.admin:
+    default: op
