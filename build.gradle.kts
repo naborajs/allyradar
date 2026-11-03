@@ -4,6 +4,7 @@ plugins {
 
 group = "dev.allyradar"
 version = "1.0.0"
+val pluginVersion = version.toString()
 
 repositories {
     mavenCentral()
@@ -31,12 +32,17 @@ tasks.test {
 
 tasks.processResources {
     filesMatching("plugin.yml") {
-        expand("version" to project.version)
+        expand("version" to pluginVersion)
     }
 }
 
 tasks.jar {
     archiveBaseName.set("AllyRadar")
+    manifest {
+        attributes[
+            "Implementation-Title"] = "AllyRadar"
+        attributes["Implementation-Version"] = pluginVersion
+    }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.runtimeClasspath.get().map { file ->
         if (file.isDirectory) file else zipTree(file)
