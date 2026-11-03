@@ -18,6 +18,6 @@ RadarCompatibilityProvider
 Filtered action-bar renderer
 ```
 
-`AllyRepository` owns all mutations and uses synchronized prepared-statement operations. The radar scheduler runs on the server thread, copies only online player state, applies authorization, and renders names, relative directions, and rounded distances. No database query is performed for every radar tick beyond cached-in-process calls in this MVP.
+`AllyRepository` owns all mutations and uses synchronized prepared-statement operations. The plugin caches player preferences and team summaries in memory, invalidating them after membership or preference changes. The radar scheduler runs on the server thread, copies only online player state, applies authorization, and renders names, relative directions, and rounded distances without querying SQLite on every refresh.
 
 Version-sensitive behavior belongs behind `RadarCompatibilityProvider`. Native locator-bar filtering is intentionally not implemented because Paper does not expose stable per-recipient filtering.
