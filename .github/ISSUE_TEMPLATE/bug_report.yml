@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible AllyRadar problem.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include server addresses, credentials, databases, worlds, or exact player coordinates.
+  - type: input
+    id: version
+    attributes:
+      label: AllyRadar version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Paper and Java version
+      placeholder: Paper 26.3 build 238, Java 25
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include commands and the smallest safe reproduction.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and relevant log excerpt
+      description: Redact player data and coordinates.
+    validations:
+      required: true
