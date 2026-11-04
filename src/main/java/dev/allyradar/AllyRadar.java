@@ -8,8 +8,12 @@ import dev.allyradar.radar.ActionBarRadarProvider;
 import dev.allyradar.radar.BossBarRadarProvider;
 import dev.allyradar.radar.CompositeRadarProvider;
 import dev.allyradar.radar.DisabledRadarProvider;
+import dev.allyradar.radar.LocatorBarFilter;
 import dev.allyradar.radar.RadarCompatibilityProvider;
+import dev.allyradar.radar.RadarPolicy;
 import dev.allyradar.storage.AllyRepository;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRadarProvider.AllyRadarAccess {
     private AllyRepository repository;
     private RadarCompatibilityProvider radarProvider;
+    private LocatorBarFilter locatorBarFilter;
     private BukkitTask radarTask;
     private int maximumTeamSize;
     private long invitationExpirationHours;
@@ -58,6 +63,17 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         radarTask = getServer().getScheduler().runTaskTimer(this, () ->
                 getServer().getOnlinePlayers().forEach(radarProvider::render),
                 radarUpdateIntervalTicks, radarUpdateIntervalTicks);
+
+        if (getConfig().getBoolean("locator-bar-filter-enabled", true)
+                && getServer().getPluginManager().isPluginEnabled("ProtocolLib")) {
+            try {
+                final Class<?> clazz = Class.forName("dev.allyradar.radar.ProtocolLibLocatorAdapter");
+                this.locatorBarFilter = (LocatorBarFilter) clazz.getConstructor(AllyRadar.class).newInstance(this);
+                this.locatorBarFilter.register();
+            } catch (final Throwable t) {
+                getLogger().warning("Could not initialize ProtocolLib locator adapter: " + t.getMessage());
+            }
+        }
         getLogger().info("AllyRadar enabled with " + radarProvider.implementationName() + ".");
     }
 
@@ -84,8 +100,15 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         if (radarTask != null) {
             radarTask.cancel();
         }
+        if (locatorBarFilter != null) {
+            locatorBarFilter.unregister();
+            locatorBarFilter = null;
+        }
         if (radarProvider != null) {
             getServer().getOnlinePlayers().forEach(radarProvider::clear);
+        }
+        for (final Player player : getServer().getOnlinePlayers()) {
+            restoreDefaultAttributes(player);
         }
         if (repository != null) {
             repository.close();
@@ -97,6 +120,7 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
     @EventHandler
     public void onJoin(final PlayerJoinEvent event) {
         preferences(event.getPlayer());
+        updatePlayerAttributes(event.getPlayer());
         invalidateAndRefreshAll();
     }
 
@@ -105,6 +129,7 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         if (radarProvider != null) {
             radarProvider.clear(event.getPlayer());
         }
+        restoreDefaultAttributes(event.getPlayer());
         preferenceCache.remove(event.getPlayer().getUniqueId());
         teamCache.remove(event.getPlayer().getUniqueId());
         if (isEnabled()) {
@@ -117,16 +142,84 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         if (radarProvider != null) {
             radarProvider.clear(event.getPlayer());
         }
+        updatePlayerAttributes(event.getPlayer());
         invalidateAndRefreshAll();
     }
 
     public void invalidateAndRefreshAll() {
         clearCaches();
-        if (radarProvider != null && isEnabled()) {
+        if (isEnabled()) {
             for (final Player player : getServer().getOnlinePlayers()) {
-                radarProvider.render(player);
+                updatePlayerAttributes(player);
+                if (radarProvider != null) {
+                    radarProvider.render(player);
+                }
             }
         }
+    }
+
+    public void updatePlayerAttributes(final Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        final PlayerPreferences prefs = preferences(player);
+        final Optional<TeamSummary> team = team(player);
+        final VisibilityMode effective = RadarPolicy.effectiveVisibility(prefs, team);
+
+        // 1. Waypoint Transmit Range: Controls whether this player is broadcast on anyone's Locator Bar
+        try {
+            final AttributeInstance transmit = player.getAttribute(Attribute.WAYPOINT_TRANSMIT_RANGE);
+            if (transmit != null) {
+                if (effective == VisibilityMode.PRIVATE) {
+                    transmit.setBaseValue(0.0);
+                } else if (effective == VisibilityMode.PUBLIC) {
+                    transmit.setBaseValue(60000000.0);
+                } else { // TEAM
+                    // If ProtocolLib packet filter is active, allow broadcast so ProtocolLib filters per-recipient.
+                    // If no packet filter is active, setting transmit > 0 leaks to enemies on vanilla! So fail-safe to 0.0.
+                    if (isLocatorBarFilterActive()) {
+                        transmit.setBaseValue(60000000.0);
+                    } else {
+                        transmit.setBaseValue(0.0);
+                    }
+                }
+            }
+        } catch (final Throwable ignored) {
+        }
+
+        // 2. Waypoint Receive Range: Controls whether this player receives any waypoints on their Locator Bar
+        try {
+            final AttributeInstance receive = player.getAttribute(Attribute.WAYPOINT_RECEIVE_RANGE);
+            if (receive != null) {
+                if (!prefs.radarEnabled()) {
+                    receive.setBaseValue(0.0);
+                } else {
+                    receive.setBaseValue(60000000.0);
+                }
+            }
+        } catch (final Throwable ignored) {
+        }
+    }
+
+    public void restoreDefaultAttributes(final Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        try {
+            final AttributeInstance transmit = player.getAttribute(Attribute.WAYPOINT_TRANSMIT_RANGE);
+            if (transmit != null) {
+                transmit.setBaseValue(60000000.0);
+            }
+            final AttributeInstance receive = player.getAttribute(Attribute.WAYPOINT_RECEIVE_RANGE);
+            if (receive != null) {
+                receive.setBaseValue(60000000.0);
+            }
+        } catch (final Throwable ignored) {
+        }
+    }
+
+    public boolean isLocatorBarFilterActive() {
+        return locatorBarFilter != null && locatorBarFilter.isActive();
     }
 
     public void reloadRadarConfig() {
