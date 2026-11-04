@@ -231,6 +231,11 @@ public final class AllyRepository implements AutoCloseable {
     }
 
     public synchronized TeamSummary createTeam(final UUID owner, final String name, final int maximumSize) {
+        return createTeam(owner, "Owner", name, maximumSize);
+    }
+
+    public synchronized TeamSummary createTeam(final UUID owner, final String ownerName, final String name, final int maximumSize) {
+        final String resolvedOwnerName = (ownerName == null || ownerName.isBlank()) ? "Owner" : ownerName.trim();
         final String normalized = name.trim();
         if (!normalized.matches("[A-Za-z0-9][A-Za-z0-9 _-]{1,23}")) {
             throw new IllegalArgumentException("Team names must be 2-24 characters and use letters, numbers, spaces, _ or -.");
@@ -253,7 +258,7 @@ public final class AllyRepository implements AutoCloseable {
                     teamId = keys.getLong(1);
                 }
             }
-            addMember(teamId, owner, "Owner");
+            addMember(teamId, owner, resolvedOwnerName);
             connection.commit();
             return teamOf(owner).orElseThrow();
         } catch (SQLException exception) {
