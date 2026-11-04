@@ -18,7 +18,11 @@
 - Open-source project governance: MIT license, contribution guide, code of conduct, issue forms, Dependabot, dependency review, and tagged-release automation.
 - Thread-safe `ConcurrentHashMap` preference and team caches.
 
+- Native Locator Bar privacy protection via dynamic `Attribute.WAYPOINT_TRANSMIT_RANGE` and `Attribute.WAYPOINT_RECEIVE_RANGE` zeroing for private and solo players.
+- Optional ProtocolLib packet adapter (`ProtocolLibLocatorAdapter`) to filter `TRACKED_WAYPOINT` packets for per-recipient team-only XP bar dots.
+- Solo player location privacy controls with dedicated chat confirmations.
+- Comprehensive setup and operational documentation (`docs/setup.md`).
+
 ### Known limitations
 
-- Native locator-bar per-recipient filtering is not exposed by stable Paper APIs and is not enabled.
-- A live Paper server integration test has not been run in this development container.
+- Live Paper server integration test has not been run in this development container.
