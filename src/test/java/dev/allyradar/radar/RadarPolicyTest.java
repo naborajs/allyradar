@@ -89,11 +89,25 @@ class RadarPolicyTest {
         assertEquals(VisibilityMode.TEAM, RadarPolicy.effectiveVisibility(
                 new PlayerPreferences(VisibilityMode.TEAM, true), Optional.of(teamAlpha)));
 
-        // PUBLIC visibility with and without team
+        // PUBLIC visibility without team is PUBLIC; with team evaluates to TEAM (confined to team)
         assertEquals(VisibilityMode.PUBLIC, RadarPolicy.effectiveVisibility(
                 new PlayerPreferences(VisibilityMode.PUBLIC, true), Optional.empty()));
-        assertEquals(VisibilityMode.PUBLIC, RadarPolicy.effectiveVisibility(
+        assertEquals(VisibilityMode.TEAM, RadarPolicy.effectiveVisibility(
                 new PlayerPreferences(VisibilityMode.PUBLIC, true), Optional.of(teamAlpha)));
+    }
+
+    @Test
+    void outsidePlayerCannotTrackTeamedPlayerEvenIfPublic() {
+        final PlayerPreferences publicPrefs = new PlayerPreferences(VisibilityMode.PUBLIC, true);
+        // Viewer is solo, target is in teamAlpha with PUBLIC preference -> strictly DENIED
+        assertFalse(RadarPolicy.canTrack(viewer, target, receiving, publicPrefs,
+                Optional.empty(), Optional.of(teamAlpha), true));
+        // Viewer is in teamBeta, target is in teamAlpha with PUBLIC preference -> strictly DENIED
+        assertFalse(RadarPolicy.canTrack(viewer, target, receiving, publicPrefs,
+                Optional.of(teamBeta), Optional.of(teamAlpha), true));
+        // Teammate in same teamAlpha CAN track them!
+        assertTrue(RadarPolicy.canTrack(viewer, target, receiving, publicPrefs,
+                Optional.of(teamAlpha), Optional.of(teamAlpha), true));
     }
 
     @Test
