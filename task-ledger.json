@@ -41,6 +41,12 @@
       "title": "Live Gameplay Repair, /ally Command, Geyser / Bedrock / Offline-Mode & Auto-Accept",
       "status": "completed",
       "summary": "Fixed /team accept 'Not enough arguments' by auto-accepting single pending invitations; added Geyser Bedrock / Floodgate username-based invitation fallback; added /ally main command with rich help menu to prevent command overwrites; added invited player notification messages; added intuitive /radar private, /radar on, /radar off toggles; sent whitespace clear packets for Bedrock action-bar wiping. Verified 62/62 tests passing. SHA256: 45BA1FDA6B471D6E053A0CA202730A9289A2EE0498ED5B36BB0CDD23D8F48284."
+    },
+    {
+      "milestoneId": "m7-locator-bar-privacy-and-setup-guide",
+      "title": "Native Locator Bar Privacy Protection, ProtocolLib Adapter, Solo Controls & Comprehensive Setup Guide",
+      "status": "completed",
+      "summary": "Implemented dual-layer native locator bar privacy protection: 1) Bukkit Attribute synchronization zeroes WAYPOINT_TRANSMIT_RANGE for private and solo players and WAYPOINT_RECEIVE_RANGE when radar is disabled; 2) Optional ProtocolLib packet adapter (ProtocolLibLocatorAdapter) intercepts TRACKED_WAYPOINT packets to filter per-recipient dots so only teammates see each other on the XP bar; 3) Enhanced solo player location controls with dedicated chat confirmations; 4) Created docs/setup.md complete operational and installation guide. All 68 tests passing. SHA256: 8F7D6C21D82DA6BD13D5FE3A54162200A8E9313C99595193EF0B20826D213D92."
     }
   ],
   "tasks": []
