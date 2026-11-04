@@ -59,21 +59,24 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         if (sub.equals("reload")) {
             return reload(sender);
         }
+        // Direct shortcuts for team commands
+        if (List.of("create", "invite", "accept", "join", "deny", "leave", "kick", "transfer", "info", "list", "disband", "delete", "settings").contains(sub)) {
+            return team(sender, args);
+        }
+        // Direct shortcuts for radar commands
+        if (List.of("on", "off", "private", "hide", "public", "visibility", "status", "who", "solo").contains(sub)) {
+            return radar(sender, args);
+        }
         if (sub.equals("team")) {
-            final String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+            if (args.length == 1) {
+                return radar(sender, args);
+            }
+            final String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
             return team(sender, subArgs);
         }
         if (sub.equals("radar")) {
             final String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
             return radar(sender, subArgs);
-        }
-        // Direct shortcuts for team commands: /ally create, invite, accept, deny, leave, kick, transfer, info, list, disband, settings
-        if (List.of("create", "invite", "accept", "deny", "leave", "kick", "transfer", "info", "list", "disband", "settings").contains(sub)) {
-            return team(sender, args);
-        }
-        // Direct shortcuts for radar commands: /ally on, off, private, team, public, visibility, status, who
-        if (List.of("on", "off", "private", "public", "visibility", "status", "who").contains(sub)) {
-            return radar(sender, args);
         }
         sendGeneralHelp(sender);
         return true;
@@ -81,29 +84,33 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
 
     private boolean reload(final CommandSender sender) {
         if (!sender.hasPermission("allyradar.admin")) {
-            sender.sendMessage("[AllyRadar] You do not have permission.");
+            sender.sendMessage("§c[AllyRadar] You do not have permission.");
             return true;
         }
         plugin.reloadConfig();
         plugin.reloadRadarConfig();
-        sender.sendMessage("[AllyRadar] Configuration reloaded. Restart to apply radar interval or database changes.");
+        sender.sendMessage("§a[AllyRadar] Configuration reloaded.");
         return true;
     }
 
     private void sendGeneralHelp(final CommandSender sender) {
-        sender.sendMessage("[AllyRadar] ===== AllyRadar Help =====");
-        sender.sendMessage("[AllyRadar] /ally create <name> - Create a team");
-        sender.sendMessage("[AllyRadar] /ally invite <player> - Invite a player to your team");
-        sender.sendMessage("[AllyRadar] /ally accept [team] - Accept team invitation");
-        sender.sendMessage("[AllyRadar] /ally deny [team] - Decline team invitation");
-        sender.sendMessage("[AllyRadar] /ally leave - Leave your team");
-        sender.sendMessage("[AllyRadar] /ally list - List team members");
-        sender.sendMessage("[AllyRadar] /ally info - View team details");
-        sender.sendMessage("[AllyRadar] /ally on / off - Toggle radar HUD and locator dots on/off");
-        sender.sendMessage("[AllyRadar] /ally private - Hide your location from everyone (solo or teamed)");
-        sender.sendMessage("[AllyRadar] /ally visibility <private|team|public> - Change location sharing");
-        sender.sendMessage("[AllyRadar] /ally status - View current radar and team status");
-        sender.sendMessage("[AllyRadar] (All commands also work via /team and /radar)");
+        sender.sendMessage("§b[AllyRadar] §l=== AllyRadar Commands ===");
+        sender.sendMessage("§e► Visibility (Who can see your location?):");
+        sender.sendMessage(" §f/ally private §7- Hide your location from EVERYONE (100% invisible)");
+        sender.sendMessage(" §f/ally team    §7- Show location ONLY to your teammates");
+        sender.sendMessage(" §f/ally public  §7- Show location to EVERYONE on the server");
+        sender.sendMessage("§e► Radar Display (Can you see others on your screen?):");
+        sender.sendMessage(" §f/ally on      §7- Turn ON your radar display (HUD text & dots)");
+        sender.sendMessage(" §f/ally off     §7- Turn OFF your radar display (hides HUD & dots)");
+        sender.sendMessage("§e► Team Commands:");
+        sender.sendMessage(" §f/ally create <name>  §7- Create a new team");
+        sender.sendMessage(" §f/ally invite <player>§7- Invite a player to your team");
+        sender.sendMessage(" §f/ally accept         §7- Accept a team invitation");
+        sender.sendMessage(" §f/ally leave          §7- Leave your team (or delete if solo owner)");
+        sender.sendMessage(" §f/ally list           §7- View all members in your team");
+        sender.sendMessage("§e► Status & Info:");
+        sender.sendMessage(" §f/ally status         §7- Check your team, visibility, and radar status");
+        sender.sendMessage(" §f/ally who            §7- List all visible players nearby");
     }
 
     private boolean team(final CommandSender sender, final String[] args) {
@@ -117,7 +124,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                 requireArgs(args, 2);
                 final TeamSummary team = plugin.repository().createTeam(player.getUniqueId(), player.getName(), join(args, 1), plugin.maximumTeamSize());
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Created team " + team.name() + "!");
+                player.sendMessage("§b[AllyRadar] §aCreated team '" + team.name() + "'! §7Invite players using §f/ally invite <player>§7.");
             }
             case "invite" -> {
                 requireArgs(args, 2);
@@ -131,27 +138,39 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                 plugin.repository().invite(player.getUniqueId(), targetUuid, targetName,
                         Duration.ofHours(plugin.invitationExpirationHours()),
                         plugin.maximumTeamSize());
-                player.sendMessage("[AllyRadar] Invitation sent to " + targetName + ".");
+                player.sendMessage("§b[AllyRadar] §aInvitation sent to " + targetName + ". §7Waiting for them to accept.");
                 if (onlineTarget != null && onlineTarget.isOnline()) {
-                    onlineTarget.sendMessage("[AllyRadar] You have been invited to join team '" + teamName + "' by " + player.getName() + "!");
-                    onlineTarget.sendMessage("[AllyRadar] Type /team accept or /ally accept to join!");
+                    onlineTarget.sendMessage("§b[AllyRadar] §e" + player.getName() + " §7invited you to join team §e'" + teamName + "'§7!");
+                    onlineTarget.sendMessage("§b[AllyRadar] §7Type §f/ally accept §7to join, or §f/ally deny §7to decline.");
                 }
             }
-            case "accept" -> {
+            case "accept", "join" -> {
                 final String teamArg = args.length >= 2 ? join(args, 1) : "";
                 final TeamSummary team = plugin.repository().accept(player.getUniqueId(), teamArg, player.getName(), plugin.maximumTeamSize());
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Joined team " + team.name() + "!");
+                player.sendMessage("§b[AllyRadar] §aJoined team '" + team.name() + "'! §7You can now see your teammates on your radar.");
             }
-            case "deny" -> {
+            case "deny", "decline" -> {
                 final String teamArg = args.length >= 2 ? join(args, 1) : "";
                 plugin.repository().deny(player.getUniqueId(), teamArg, player.getName());
-                player.sendMessage("[AllyRadar] Invitation declined.");
+                player.sendMessage("§b[AllyRadar] §7Invitation declined.");
             }
             case "leave" -> {
+                final Optional<TeamSummary> teamOpt = plugin.team(player);
+                if (teamOpt.isEmpty()) {
+                    player.sendMessage("§b[AllyRadar] §7You are not currently in a team.");
+                    return true;
+                }
+                final TeamSummary team = teamOpt.get();
+                final boolean wasOwner = team.owner().equals(player.getUniqueId());
+                final boolean wasSole = team.memberCount() <= 1;
                 plugin.repository().leave(player.getUniqueId());
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] You left your team.");
+                if (wasOwner && wasSole) {
+                    player.sendMessage("§b[AllyRadar] §aTeam disbanded. §7You are now playing solo.");
+                } else {
+                    player.sendMessage("§b[AllyRadar] §aYou left team '" + team.name() + "'. §7You are now playing solo.");
+                }
             }
             case "kick" -> {
                 requireArgs(args, 2);
@@ -159,7 +178,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                 final UUID targetUuid = onlineTarget != null ? onlineTarget.getUniqueId() : offline(args[1]).getUniqueId();
                 plugin.repository().kick(player.getUniqueId(), targetUuid);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Player removed from the team.");
+                player.sendMessage("§b[AllyRadar] §aPlayer removed from the team.");
             }
             case "transfer" -> {
                 requireArgs(args, 2);
@@ -167,14 +186,14 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                 final UUID targetUuid = onlineTarget != null ? onlineTarget.getUniqueId() : offline(args[1]).getUniqueId();
                 plugin.repository().transfer(player.getUniqueId(), targetUuid);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Ownership transferred.");
+                player.sendMessage("§b[AllyRadar] §aTeam ownership transferred.");
             }
             case "info" -> teamInfo(player);
             case "list" -> teamList(player);
-            case "disband" -> {
+            case "disband", "delete" -> {
                 plugin.repository().disband(player.getUniqueId());
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Team disbanded.");
+                player.sendMessage("§b[AllyRadar] §aTeam disbanded/deleted. §7All members are now playing solo.");
             }
             case "settings" -> teamSettings(player, args);
             default -> sendTeamHelp(player);
@@ -187,55 +206,82 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         final Optional<TeamSummary> team = plugin.team(player);
         final boolean isSolo = team.isEmpty();
 
-        if (args.length == 0 || args[0].equalsIgnoreCase("status")) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("status") || args[0].equalsIgnoreCase("solo")) {
             final PlayerPreferences preferences = plugin.preferences(player);
             final VisibilityMode effective = RadarPolicy.effectiveVisibility(preferences, team);
-            player.sendMessage("[AllyRadar] Status — Radar receiver: " + (preferences.radarEnabled() ? "ON" : "OFF")
-                    + " | Location sharing: " + preferences.visibility()
-                    + (isSolo ? " (Effective: " + effective + ")" : "")
-                    + " | Team: " + team.map(t -> t.name() + " (Radar: " + (t.radarEnabled() ? "ON" : "OFF") + ")").orElse("None (Solo)"));
+
+            player.sendMessage("§b[AllyRadar] §l=== Your Radar Status ===");
+            if (isSolo) {
+                player.sendMessage("§7• Your Team: §fNone (Playing Solo)");
+                if (effective == VisibilityMode.PUBLIC) {
+                    player.sendMessage("§7• Who can see you: §aEVERYONE (Public) §7— Your location is visible to all players with radar.");
+                } else {
+                    player.sendMessage("§7• Who can see you: §cNOBODY (Private) §7— You are completely hidden from all players.");
+                }
+            } else {
+                final TeamSummary t = team.get();
+                player.sendMessage("§7• Your Team: §e" + t.name() + " §7(" + t.memberCount() + "/" + plugin.maximumTeamSize() + " members)");
+                if (preferences.visibility() == VisibilityMode.PRIVATE) {
+                    player.sendMessage("§7• Who can see you: §cNOBODY (Private) §7— You are hidden from everyone, including teammates.");
+                } else if (preferences.visibility() == VisibilityMode.PUBLIC) {
+                    player.sendMessage("§7• Who can see you: §aEVERYONE (Public) §7— Your location is visible to everyone on the server.");
+                } else {
+                    player.sendMessage("§7• Who can see you: §eTEAMMATES ONLY §7— Only members of " + t.name() + " can see you.");
+                }
+            }
+
+            if (preferences.radarEnabled()) {
+                player.sendMessage("§7• Radar Display: §aON §7— You can see nearby teammates & public players on your screen.");
+            } else {
+                player.sendMessage("§7• Radar Display: §cOFF §7— Your HUD radar and locator dots are disabled.");
+            }
+            player.sendMessage("§8(Commands: /ally public to be seen, /ally private to hide, /ally on or /ally off for display)");
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "on" -> {
                 plugin.repository().setRadarEnabled(player.getUniqueId(), true);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage(isSolo
-                        ? "[AllyRadar] Solo Mode: Radar receiving enabled."
-                        : "[AllyRadar] Radar receiving enabled. Tracking authorized teammates.");
+                player.sendMessage("§b[AllyRadar] §aRadar display turned ON! §7You will now see authorized teammates and public players on your screen.");
             }
             case "off" -> {
                 plugin.repository().setRadarEnabled(player.getUniqueId(), false);
                 plugin.radarProvider().clear(player);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage(isSolo
-                        ? "[AllyRadar] Solo Mode: Radar receiving disabled. HUD and locator dots turned off."
-                        : "[AllyRadar] Radar receiving disabled. (To hide your own location from teammates, use /ally private).");
+                player.sendMessage("§b[AllyRadar] §cRadar display turned OFF! §7All radar text and locator dots are removed from your screen.");
+                player.sendMessage("§7(Note: This turns off what you SEE. To also hide your own location from others, use §f/ally private§7).");
             }
-            case "private" -> {
+            case "private", "hide" -> {
                 plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.PRIVATE);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage(isSolo
-                        ? "[AllyRadar] Solo Mode: Location sharing set to PRIVATE. You are completely hidden from all players."
-                        : "[AllyRadar] Location sharing set to PRIVATE. You are hidden from all players (including teammates).");
+                player.sendMessage("§b[AllyRadar] §cLocation set to PRIVATE! §7You are now 100% hidden from everyone (including teammates). Nobody can see your location.");
+                player.sendMessage("§7(To share with teammates: §f/ally team §7| To share with everyone: §f/ally public§7)");
             }
             case "public" -> {
+                final boolean publicEnabled = plugin.getConfig().getBoolean("public-radar-enabled", true);
                 plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.PUBLIC);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage(isSolo
-                        ? "[AllyRadar] Solo Mode: Location sharing set to PUBLIC. Your location is broadcast to anyone with radar."
-                        : "[AllyRadar] Location sharing set to PUBLIC. Your location is broadcast to anyone with radar.");
+                if (!publicEnabled) {
+                    player.sendMessage("§b[AllyRadar] §eWarning: §7Public radar is currently disabled in the server config. Players will not see you until public-radar-enabled is set to true.");
+                } else {
+                    player.sendMessage("§b[AllyRadar] §aLocation set to PUBLIC! §7Everyone on the server with radar turned on can now see your location!");
+                    player.sendMessage("§7(To hide yourself again at any time, type §f/ally private§7).");
+                }
             }
             case "team" -> {
                 plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.TEAM);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage(isSolo
-                        ? "[AllyRadar] Solo Mode: Location sharing set to TEAM. Because you have no team, your effective visibility is PRIVATE (Hidden)."
-                        : "[AllyRadar] Location sharing set to TEAM. Visible only to your teammates.");
+                if (isSolo) {
+                    player.sendMessage("§b[AllyRadar] §eLocation set to TEAM. §7Since you are playing solo without a team, you remain §cHIDDEN (Private) §7until you join a team.");
+                    player.sendMessage("§7(To share with everyone: §f/ally public §7| To create a team: §f/ally create <name>§7)");
+                } else {
+                    player.sendMessage("§b[AllyRadar] §aLocation set to TEAM! §7Only your teammates in '" + team.get().name() + "' can see your location.");
+                    player.sendMessage("§7(To hide from teammates too: §f/ally private §7| To share with everyone: §f/ally public§7)");
+                }
             }
             case "visibility" -> {
                 if (args.length < 2) {
-                    player.sendMessage("[AllyRadar] Use /radar visibility <private|team|public> (or /radar private).");
+                    player.sendMessage("§b[AllyRadar] §7Use §f/ally private§7, §f/ally team§7, or §f/ally public§7.");
                     return true;
                 }
                 final String modeArg = args[1].toLowerCase(Locale.ROOT);
@@ -247,13 +293,20 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                 };
                 plugin.repository().setVisibility(player.getUniqueId(), mode);
                 plugin.invalidateAndRefreshAll();
-                final VisibilityMode effective = RadarPolicy.effectiveVisibility(new PlayerPreferences(mode, true), team);
-                player.sendMessage("[AllyRadar] Location sharing set to " + mode + "."
-                        + (isSolo && mode == VisibilityMode.TEAM ? " Effective visibility: PRIVATE (join a team to share)." : "")
-                        + (effective == VisibilityMode.PRIVATE ? " You are hidden from other players." : ""));
+                if (mode == VisibilityMode.PUBLIC) {
+                    player.sendMessage("§b[AllyRadar] §aLocation set to PUBLIC! §7Everyone on the server can see your location.");
+                } else if (mode == VisibilityMode.PRIVATE) {
+                    player.sendMessage("§b[AllyRadar] §cLocation set to PRIVATE! §7You are hidden from all players.");
+                } else {
+                    if (isSolo) {
+                        player.sendMessage("§b[AllyRadar] §eLocation set to TEAM. §7Since you have no team, you remain hidden.");
+                    } else {
+                        player.sendMessage("§b[AllyRadar] §aLocation set to TEAM! §7Only your teammates can see your location.");
+                    }
+                }
             }
             case "who" -> radarWho(player);
-            default -> player.sendMessage("[AllyRadar] Use /radar on, off, private, team, public, visibility <mode>, status, or who.");
+            default -> player.sendMessage("§b[AllyRadar] §7Use: §f/ally on§7, §f/ally off§7, §f/ally private§7, §f/ally team§7, §f/ally public§7, or §f/ally status§7.");
         }
         return true;
     }
@@ -261,13 +314,24 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
     private void radarWho(final Player viewer) {
         final PlayerPreferences viewerPreferences = plugin.preferences(viewer);
         final Optional<TeamSummary> viewerTeam = plugin.team(viewer);
-        final List<String> names = plugin.getServer().getOnlinePlayers().stream()
-                .filter(target -> !target.equals(viewer) && target.getWorld().equals(viewer.getWorld()))
-                .filter(target -> RadarPolicy.canTrack(viewer.getUniqueId(), target.getUniqueId(), viewerPreferences,
-                        plugin.preferences(target), viewerTeam, plugin.team(target),
-                        plugin.getConfig().getBoolean("public-radar-enabled", false)))
-                .map(Player::getName).sorted().toList();
-        viewer.sendMessage(names.isEmpty() ? "[AllyRadar] No authorized players are visible." : "[AllyRadar] Visible: " + String.join(", ", names));
+        final boolean publicEnabled = plugin.getConfig().getBoolean("public-radar-enabled", true);
+        final List<String> entries = new ArrayList<>();
+        for (final Player target : plugin.getServer().getOnlinePlayers()) {
+            if (target.equals(viewer) || !target.getWorld().equals(viewer.getWorld())) {
+                continue;
+            }
+            if (RadarPolicy.canTrack(viewer.getUniqueId(), target.getUniqueId(), viewerPreferences,
+                    plugin.preferences(target), viewerTeam, plugin.team(target), publicEnabled)) {
+                final double distance = viewer.getLocation().distance(target.getLocation());
+                entries.add(target.getName() + " (" + Math.round(distance) + "m)");
+            }
+        }
+        if (entries.isEmpty()) {
+            viewer.sendMessage("§b[AllyRadar] §7No visible players nearby.");
+            viewer.sendMessage("§7(Players must be in your team or have §f/ally public §7enabled, with radar on).");
+        } else {
+            viewer.sendMessage("§b[AllyRadar] §aVisible players nearby: §f" + String.join(", ", entries));
+        }
     }
 
     private void teamInfo(final Player player) {
@@ -336,7 +400,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         final List<String> values;
         if (main.equals("ally") || main.equals("allyradar") || main.equals("ar")) {
             if (args.length == 1) {
-                values = List.of("help", "create", "invite", "accept", "deny", "leave", "kick", "transfer", "info", "list", "disband", "settings", "radar", "on", "off", "private", "status", "visibility", "who", "reload");
+                values = List.of("help", "create", "invite", "accept", "join", "deny", "leave", "kick", "transfer", "info", "list", "disband", "delete", "settings", "team", "radar", "on", "off", "private", "hide", "public", "status", "who", "reload");
             } else if (args.length == 2 && args[0].equalsIgnoreCase("settings")) {
                 values = List.of("radar");
             } else if (args.length == 2 && args[0].equalsIgnoreCase("visibility")) {
@@ -346,10 +410,10 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             }
         } else if (main.equals("team")) {
             values = args.length == 1
-                    ? List.of("create", "invite", "accept", "deny", "leave", "kick", "transfer", "info", "list", "settings", "disband")
+                    ? List.of("create", "invite", "accept", "join", "deny", "leave", "kick", "transfer", "info", "list", "settings", "disband", "delete")
                     : args.length == 2 && args[0].equalsIgnoreCase("settings") ? List.of("radar") : List.of();
         } else if (main.equals("radar")) {
-            values = args.length == 1 ? List.of("on", "off", "private", "visibility", "status", "who")
+            values = args.length == 1 ? List.of("on", "off", "private", "hide", "public", "team", "visibility", "status", "who")
                     : args.length == 2 && args[0].equalsIgnoreCase("visibility") ? List.of("private", "team", "public") : List.of();
         } else {
             values = List.of("reload");
