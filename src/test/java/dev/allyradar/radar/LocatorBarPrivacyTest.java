@@ -109,6 +109,12 @@ class LocatorBarPrivacyTest {
         final PlayerPreferences soloPublic = new PlayerPreferences(VisibilityMode.PUBLIC, true);
         assertTrue(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
                 Optional.empty(), Optional.empty(), true), "Solo players with PUBLIC visibility must be trackable when public radar is enabled");
+
+        // Player outside team (solo or another team) CANNOT track teamed player even if teamed player has PUBLIC
+        assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
+                Optional.empty(), Optional.of(teamA), true), "Outside solo player must NEVER track a teamed player");
+        assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
+                Optional.of(teamB), Optional.of(teamA), true), "Enemy team player must NEVER track a teamed player");
     }
 
     private double calculateTransmitRange(final VisibilityMode effective, final boolean filterActive) {
