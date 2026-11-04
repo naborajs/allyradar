@@ -73,42 +73,40 @@ radar-display-mode: ACTION_BAR
 # Native Locator Bar (XP Bar waypoint dots) filtering
 locator-bar-filter-enabled: true
 
-# Allow public radar tracking (disabled by default for strict privacy)
-public-radar-enabled: false
+# Allow public radar tracking (enabled by default so solo players who run /ally public can see each other)
+public-radar-enabled: true
 ```
 
 ---
 
 ## 4. Player Commands & How to Play
 
-All commands can be executed using the main `/ally` command (or `/team` and `/radar`).
+All commands can be executed easily using the main `/ally` command.
 
-### A. Solo Players (Teamless Players)
-If you are playing solo without a team:
-* **Your location is PRIVATE by default**: Nobody can see you on their radar or XP bar.
-* `/ally private` — Explicitly confirm private mode. Transmit range is set to `0.0`.
-* `/ally public` — Opt-in to share your location with anyone on the server who has radar enabled.
-* `/ally off` — Turn off your radar receiver. Clears all HUD displays and sets XP bar receive range to `0.0`.
-* `/ally on` — Turn on your radar receiver to track authorized players.
-* `/ally status` — Check your current mode and privacy settings.
+### A. Visibility Controls (Who can see you?):
+* `/ally private` (or `/ally hide`) — **Hide your location completely** from EVERYONE on the server. You are 100% invisible on HUD radar and XP bar dots.
+* `/ally team` — Share your location **ONLY with your teammates**. If you have no team (solo), your location remains hidden.
+* `/ally public` — Share your location with **EVERYONE on the server**. Any nearby player with radar turned on can see your direction and distance.
 
-### B. Creating and Managing a Team
+### B. Radar Screen Controls (Can you see others?):
+* `/ally on` — Turn **ON** your radar screen to see nearby teammates and public players.
+* `/ally off` — Turn **OFF** your radar screen. Hides all HUD displays and removes XP bar dots.
+
+### C. Checking Your Status:
+* `/ally status` — View a clear, friendly summary: your current team, who can see your location, and whether your radar screen is on or off.
+* `/ally who` — Lists all players currently visible to you and their distance in blocks.
+
+### D. Team Management:
 * `/ally create <team_name>` — Create a new team with you as the owner.
 * `/ally invite <player>` — Invite a player to join your team. The invited player will receive an immediate notification in chat.
-* `/ally accept` — Accept a pending team invitation (no team name argument needed if you have one invite).
+* `/ally accept` (or `/ally join`) — Accept a pending team invitation with zero arguments.
 * `/ally deny` — Decline a pending team invitation.
+* `/ally leave` — Leave your team. If you are the only member, this automatically deletes the team cleanly.
 * `/ally list` — View all teammates in your team.
-* `/ally info` — View team settings, member count, and team radar state.
-* `/ally leave` — Leave your current team. If you are the owner, transfer ownership first or disband.
+* `/ally info` — View team details, member count, and team radar state.
 * `/ally kick <player>` — Remove a member from your team (owner only).
 * `/ally transfer <player>` — Transfer team ownership to another member (owner only).
-* `/ally disband` — Disband the team completely (owner only).
-
-### C. Personal Location Sharing (For Team Members)
-Even when you are in a team, **you are in full control of your personal privacy**:
-* `/ally private` — Instantly hides you from EVERYONE, including your teammates and team leaders. Team owners cannot override your private setting.
-* `/ally team` — Shares your location with your teammates only.
-* `/ally on` / `/ally off` — Toggle your own radar display on or off.
+* `/ally disband` (or `/ally delete`) — Disband the team completely (owner only).
 
 ---
 
