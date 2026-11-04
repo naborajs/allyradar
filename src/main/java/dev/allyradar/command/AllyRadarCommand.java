@@ -64,7 +64,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             return team(sender, args);
         }
         // Direct shortcuts for radar commands
-        if (List.of("on", "off", "private", "hide", "public", "visibility", "status", "who", "solo").contains(sub)) {
+        if (List.of("on", "off", "private", "hide", "public", "visibility", "status", "who", "solo", "hud", "radius", "range", "bedrock", "b").contains(sub)) {
             return radar(sender, args);
         }
         if (sub.equals("team")) {
@@ -95,12 +95,17 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendGeneralHelp(final CommandSender sender) {
+        final boolean isBedrock = sender instanceof Player p && p.getName().startsWith(".");
         sender.sendMessage("§b[AllyRadar] §l=== AllyRadar Commands ===");
-        sender.sendMessage("§e► Radar & Location:");
-        sender.sendMessage(" §f/ally on       §7- Turn ON radar display & share with teammates");
-        sender.sendMessage(" §f/ally off      §7- Turn OFF radar display & hide location completely");
-        sender.sendMessage(" §f/ally private  §7- Hide your location from EVERYONE (100% invisible)");
-        sender.sendMessage(" §f/ally public   §7- Share location with everyone (solo players)");
+        sender.sendMessage("§e► Radar & Screen Display:");
+        sender.sendMessage(" §f/ally on          §7- Turn ON radar & team location sharing");
+        sender.sendMessage(" §f/ally off         §7- Turn OFF radar & hide location completely");
+        sender.sendMessage(" §f/ally hud [on|off]§7- Toggle/turn off the text at bottom of screen");
+        sender.sendMessage(" §f/ally radius <m>  §7- Set custom radar distance (e.g. §f/ally radius 50§7)");
+        sender.sendMessage("§e► Privacy & Visibility:");
+        sender.sendMessage(" §f/ally private     §7- Hide your location from EVERYONE (100% invisible)");
+        sender.sendMessage(" §f/ally team        §7- Show location ONLY to your teammates");
+        sender.sendMessage(" §f/ally public      §7- Share location with everyone (solo players)");
         sender.sendMessage("§e► Team Commands:");
         sender.sendMessage(" §f/ally create <name>   §7- Create a new team");
         sender.sendMessage(" §f/ally invite <player> §7- Invite a player to your team");
@@ -109,9 +114,27 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(" §f/ally leave           §7- Leave your team (deletes if sole member)");
         sender.sendMessage(" §f/ally list            §7- View all members in your team");
         sender.sendMessage(" §f/ally disband         §7- Delete your team (owner only)");
-        sender.sendMessage("§e► Status & Info:");
-        sender.sendMessage(" §f/ally status          §7- View your team, visibility, and radar status");
-        sender.sendMessage(" §f/ally who             §7- List all visible players nearby");
+        sender.sendMessage("§e► Status & Guides:");
+        sender.sendMessage(" §f/ally status          §7- View your team, radius, and radar status");
+        sender.sendMessage(" §f/ally bedrock         §7- Bedrock touch & controller quick shortcuts (§f/a§7)");
+        if (isBedrock) {
+            sender.sendMessage("§a[Bedrock Tip] §7You can use §f/a §7instead of /ally (e.g. §f/a on§7, §f/a hud§7)!");
+        }
+    }
+
+    private void sendBedrockHelp(final CommandSender sender) {
+        sender.sendMessage("§b[AllyRadar] §l=== Bedrock Touch & Controller Guide ===");
+        sender.sendMessage("§eUse §f/a §einstead of §f/ally §eto type fast on mobile/console:");
+        sender.sendMessage(" §f/a on          §7- Turn ON radar & team sharing");
+        sender.sendMessage(" §f/a off         §7- Turn OFF radar & hide completely");
+        sender.sendMessage(" §f/a hud         §7- Toggle bottom-screen text on/off");
+        sender.sendMessage(" §f/a radius 50   §7- Set radar distance to 50 blocks");
+        sender.sendMessage(" §f/a radius reset§7- Reset radar distance to server maximum");
+        sender.sendMessage(" §f/a public      §7- Share location with everyone (solo)");
+        sender.sendMessage(" §f/a private     §7- Hide location (100% invisible)");
+        sender.sendMessage(" §f/a accept      §7- Join team that invited you");
+        sender.sendMessage(" §f/a leave       §7- Leave your current team");
+        sender.sendMessage(" §f/a status      §7- Check who can see you");
     }
 
     private boolean team(final CommandSender sender, final String[] args) {
@@ -232,11 +255,20 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             }
 
             if (preferences.radarEnabled()) {
-                player.sendMessage("§7• Radar Display: §aON §7— You can see nearby teammates & public players on your screen.");
+                player.sendMessage("§7• Radar Master: §aON §7— Radar tracking is active.");
             } else {
-                player.sendMessage("§7• Radar Display: §cOFF §7— Your HUD radar and locator dots are disabled.");
+                player.sendMessage("§7• Radar Master: §cOFF §7— All radar displays and locator dots are disabled.");
             }
-            player.sendMessage("§8(Commands: /ally public to be seen, /ally private to hide, /ally on or /ally off for display)");
+            if (preferences.hudEnabled()) {
+                player.sendMessage("§7• Bottom Text HUD: §aON §7— Teammate text appears above hotbar. (§f/ally hud off§7 to hide)");
+            } else {
+                player.sendMessage("§7• Bottom Text HUD: §cOFF §7— Text at bottom is hidden. (§f/ally hud on§7 to show)");
+            }
+            final String radiusStr = preferences.customRadius() > 0.0
+                    ? ((int) preferences.customRadius() + "m")
+                    : ("Server Max (" + (int) plugin.radarMaxDistance() + "m)");
+            player.sendMessage("§7• Detection Radius: §e" + radiusStr + " §7— (§f/ally radius <meters>§7)");
+            player.sendMessage("§8(Commands: /ally hud, /ally radius, /ally on, /ally off, /ally public, /ally private)");
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -320,8 +352,64 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                     }
                 }
             }
+            case "hud" -> {
+                final boolean newHud;
+                if (args.length > 1) {
+                    final String toggle = args[1].toLowerCase(Locale.ROOT);
+                    if (toggle.equals("on") || toggle.equals("enable") || toggle.equals("true") || toggle.equals("1")) {
+                        newHud = true;
+                    } else if (toggle.equals("off") || toggle.equals("disable") || toggle.equals("false") || toggle.equals("0")) {
+                        newHud = false;
+                    } else {
+                        newHud = !preferences.hudEnabled();
+                    }
+                } else {
+                    newHud = !preferences.hudEnabled();
+                }
+                plugin.repository().setHudEnabled(player.getUniqueId(), newHud);
+                if (!newHud) {
+                    plugin.radarProvider().clear(player);
+                }
+                plugin.invalidateAndRefreshAll();
+                if (newHud) {
+                    player.sendMessage("§b[AllyRadar] §aBottom Text HUD turned ON! §7Names and distances will display above your hotbar.");
+                } else {
+                    player.sendMessage("§b[AllyRadar] §cBottom Text HUD turned OFF! §7The text at the bottom of your screen is hidden. (Your XP-bar locator dots still work).");
+                }
+            }
+            case "radius", "range" -> {
+                if (args.length < 2) {
+                    final String current = preferences.customRadius() > 0.0
+                            ? ((int) preferences.customRadius() + "m")
+                            : ("Server Max (" + (int) plugin.radarMaxDistance() + "m)");
+                    player.sendMessage("§b[AllyRadar] §7Current detection radius: §e" + current);
+                    player.sendMessage("§7(To change: §f/ally radius <meters> §7e.g. §f/ally radius 50 §7| Reset: §f/ally radius reset§7)");
+                    return true;
+                }
+                final String targetArg = args[1].toLowerCase(Locale.ROOT);
+                if (targetArg.equals("reset") || targetArg.equals("max") || targetArg.equals("default") || targetArg.equals("0")) {
+                    plugin.repository().setCustomRadius(player.getUniqueId(), 0.0);
+                    plugin.invalidateAndRefreshAll();
+                    player.sendMessage("§b[AllyRadar] §aDetection radius reset to Server Max (" + (int) plugin.radarMaxDistance() + "m)!");
+                    return true;
+                }
+                try {
+                    final double radius = Double.parseDouble(args[1]);
+                    if (radius <= 0.0) {
+                        player.sendMessage("§b[AllyRadar] §cRadius must be greater than 0 meters.");
+                        return true;
+                    }
+                    final double clamped = Math.min(radius, plugin.radarMaxDistance());
+                    plugin.repository().setCustomRadius(player.getUniqueId(), clamped);
+                    plugin.invalidateAndRefreshAll();
+                    player.sendMessage("§b[AllyRadar] §aRadar detection radius set to §e" + (int) clamped + "m§7! You will only detect players within this range.");
+                } catch (NumberFormatException e) {
+                    player.sendMessage("§b[AllyRadar] §cInvalid number. Usage: §f/ally radius <meters> §7(e.g. §f/ally radius 50§7)");
+                }
+            }
+            case "bedrock", "b" -> sendBedrockHelp(player);
             case "who" -> radarWho(player);
-            default -> player.sendMessage("§b[AllyRadar] §7Use: §f/ally on§7, §f/ally off§7, §f/ally private§7, §f/ally team§7, §f/ally public§7, or §f/ally status§7.");
+            default -> player.sendMessage("§b[AllyRadar] §7Use: §f/ally on§7, §f/ally off§7, §f/ally hud§7, §f/ally radius§7, §f/ally private§7, §f/ally team§7, §f/ally public§7, or §f/ally status§7.");
         }
         return true;
     }
@@ -330,6 +418,9 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         final PlayerPreferences viewerPreferences = plugin.preferences(viewer);
         final Optional<TeamSummary> viewerTeam = plugin.team(viewer);
         final boolean publicEnabled = plugin.getConfig().getBoolean("public-radar-enabled", true);
+        final double maxRange = viewerPreferences.customRadius() > 0.0
+                ? Math.min(viewerPreferences.customRadius(), plugin.radarMaxDistance())
+                : plugin.radarMaxDistance();
         final List<String> entries = new ArrayList<>();
         for (final Player target : plugin.getServer().getOnlinePlayers()) {
             if (target.equals(viewer) || !target.getWorld().equals(viewer.getWorld())) {
@@ -338,7 +429,9 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             if (RadarPolicy.canTrack(viewer.getUniqueId(), target.getUniqueId(), viewerPreferences,
                     plugin.preferences(target), viewerTeam, plugin.team(target), publicEnabled)) {
                 final double distance = viewer.getLocation().distance(target.getLocation());
-                entries.add(target.getName() + " (" + Math.round(distance) + "m)");
+                if (distance <= maxRange) {
+                    entries.add(target.getName() + " (" + Math.round(distance) + "m)");
+                }
             }
         }
         if (entries.isEmpty()) {
@@ -413,16 +506,20 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
         final String main = alias.toLowerCase(Locale.ROOT);
         final List<String> values;
-        if (main.equals("ally") || main.equals("allyradar") || main.equals("ar")) {
+        if (main.equals("ally") || main.equals("allyradar") || main.equals("ar") || main.equals("a")) {
             if (args.length == 1) {
                 final List<String> list = new ArrayList<>(List.of(
-                        "on", "off", "private", "public", "status", "who",
+                        "on", "off", "hud", "radius", "private", "public", "status", "bedrock", "who",
                         "create", "invite", "accept", "deny", "leave", "list", "info", "kick", "transfer", "disband"
                 ));
                 if (sender.hasPermission("allyradar.admin")) {
                     list.add("reload");
                 }
                 values = list;
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("hud")) {
+                values = List.of("on", "off");
+            } else if (args.length == 2 && (args[0].equalsIgnoreCase("radius") || args[0].equalsIgnoreCase("range"))) {
+                values = List.of("25", "50", "100", "250", "500", "reset");
             } else {
                 values = List.of();
             }
@@ -432,7 +529,9 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                     : List.of();
         } else if (main.equals("radar")) {
             values = args.length == 1
-                    ? List.of("on", "off", "private", "public", "status", "who")
+                    ? List.of("on", "off", "hud", "radius", "private", "public", "status", "who")
+                    : args.length == 2 && args[0].equalsIgnoreCase("hud") ? List.of("on", "off")
+                    : args.length == 2 && (args[0].equalsIgnoreCase("radius") || args[0].equalsIgnoreCase("range")) ? List.of("25", "50", "100", "250", "500", "reset")
                     : List.of();
         } else {
             values = List.of("reload");
