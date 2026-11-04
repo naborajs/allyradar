@@ -123,6 +123,25 @@ public final class AllyRepository implements AutoCloseable {
                     connection.setAutoCommit(true);
                 }
             }
+            if (!migrationApplied(statement, 2)) {
+                try {
+                    connection.setAutoCommit(false);
+                    statement.executeUpdate("ALTER TABLE player_preferences ADD COLUMN hud_enabled INTEGER NOT NULL DEFAULT 1");
+                    statement.executeUpdate("ALTER TABLE player_preferences ADD COLUMN custom_radius REAL NOT NULL DEFAULT 0.0");
+                    try (PreparedStatement migration = connection.prepareStatement(
+                            "INSERT INTO schema_migrations(version, applied_at) VALUES(?, ?)")) {
+                        migration.setInt(1, 2);
+                        migration.setLong(2, Instant.now().toEpochMilli());
+                        migration.executeUpdate();
+                    }
+                    connection.commit();
+                } catch (SQLException exception) {
+                    connection.rollback();
+                    throw exception;
+                } finally {
+                    connection.setAutoCommit(true);
+                }
+            }
         }
     }
 
@@ -139,8 +158,8 @@ public final class AllyRepository implements AutoCloseable {
     public synchronized PlayerPreferences preferences(final UUID playerId) {
         try {
             try (PreparedStatement insert = connection.prepareStatement("""
-                    INSERT INTO player_preferences(player_uuid, visibility, radar_enabled)
-                    VALUES(?, ?, ?)
+                    INSERT INTO player_preferences(player_uuid, visibility, radar_enabled, hud_enabled, custom_radius)
+                    VALUES(?, ?, ?, 1, 0.0)
                     ON CONFLICT(player_uuid) DO NOTHING
                     """)) {
                 insert.setString(1, playerId.toString());
@@ -149,11 +168,16 @@ public final class AllyRepository implements AutoCloseable {
                 insert.executeUpdate();
             }
             try (PreparedStatement query = connection.prepareStatement(
-                    "SELECT visibility, radar_enabled FROM player_preferences WHERE player_uuid = ?")) {
+                    "SELECT visibility, radar_enabled, hud_enabled, custom_radius FROM player_preferences WHERE player_uuid = ?")) {
                 query.setString(1, playerId.toString());
                 try (ResultSet result = query.executeQuery()) {
                     result.next();
-                    return new PlayerPreferences(VisibilityMode.parse(result.getString(1)), result.getBoolean(2));
+                    return new PlayerPreferences(
+                            VisibilityMode.parse(result.getString(1)),
+                            result.getBoolean(2),
+                            result.getBoolean(3),
+                            result.getDouble(4)
+                    );
                 }
             }
         } catch (SQLException exception) {
@@ -176,6 +200,34 @@ public final class AllyRepository implements AutoCloseable {
             }
         } catch (SQLException exception) {
             throw failure("Could not update radar preference", exception);
+        }
+    }
+
+    public synchronized void setHudEnabled(final UUID playerId, final boolean enabled) {
+        try {
+            preferences(playerId);
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE player_preferences SET hud_enabled = ? WHERE player_uuid = ?")) {
+                update.setBoolean(1, enabled);
+                update.setString(2, playerId.toString());
+                update.executeUpdate();
+            }
+        } catch (SQLException exception) {
+            throw failure("Could not update hud preference", exception);
+        }
+    }
+
+    public synchronized void setCustomRadius(final UUID playerId, final double radius) {
+        try {
+            preferences(playerId);
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE player_preferences SET custom_radius = ? WHERE player_uuid = ?")) {
+                update.setDouble(1, Math.max(0.0, radius));
+                update.setString(2, playerId.toString());
+                update.executeUpdate();
+            }
+        } catch (SQLException exception) {
+            throw failure("Could not update custom radius preference", exception);
         }
     }
 
