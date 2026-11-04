@@ -95,4 +95,65 @@ class AllyRepositoryTest {
             assertEquals("Owner", repository.members(owner2).getFirst().lastKnownName());
         }
     }
+
+    @Test
+    void acceptWithoutTeamNameResolvesSinglePendingInvitation() {
+        final File database = temporaryDirectory.resolve("accept_no_arg.db").toFile();
+        final UUID owner = UUID.randomUUID();
+        final UUID invitee = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            repository.createTeam(owner, "Captain", "Starfleet", 5);
+            repository.invite(owner, invitee, "Crewman", Duration.ofHours(2), 5);
+
+            assertEquals(List.of("Starfleet"), repository.pendingInvitations(invitee, "Crewman"));
+
+            // Pass null or blank string to accept without specifying team name
+            repository.accept(invitee, "", "Crewman", 5);
+            assertTrue(repository.sameTeam(owner, invitee));
+            assertTrue(repository.pendingInvitations(invitee, "Crewman").isEmpty());
+        }
+    }
+
+    @Test
+    void acceptByNameMatchingResolvesGeyserBedrockPlayer() {
+        final File database = temporaryDirectory.resolve("geyser_player.db").toFile();
+        final UUID owner = UUID.randomUUID();
+        final UUID offlineInviteUuid = UUID.randomUUID();
+        final UUID actualRuntimeBedrockUuid = UUID.randomUUID(); // Different UUID assigned by Floodgate/Geyser
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            repository.createTeam(owner, "Captain", "BedrockCrew", 5);
+            // Invited using offline UUID and name with Bedrock prefix
+            repository.invite(owner, offlineInviteUuid, ".Aloneboy18k", Duration.ofHours(2), 5);
+
+            // Bedrock player joins with runtime Floodgate UUID and accepts
+            assertEquals(List.of("BedrockCrew"), repository.pendingInvitations(actualRuntimeBedrockUuid, ".Aloneboy18k"));
+            repository.accept(actualRuntimeBedrockUuid, "", ".Aloneboy18k", 5);
+
+            assertTrue(repository.sameTeam(owner, actualRuntimeBedrockUuid));
+            assertEquals(".Aloneboy18k", repository.members(actualRuntimeBedrockUuid).getFirst().lastKnownName());
+        }
+    }
+
+    @Test
+    void acceptWithNoPendingInvitationsThrows() {
+        final File database = temporaryDirectory.resolve("no_invites.db").toFile();
+        final UUID player = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            assertThrows(IllegalArgumentException.class, () -> repository.accept(player, "", "Player", 5));
+        }
+    }
+
+    @Test
+    void denyWithoutTeamNameDeclinesInvitation() {
+        final File database = temporaryDirectory.resolve("deny_invitation.db").toFile();
+        final UUID owner = UUID.randomUUID();
+        final UUID invitee = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            repository.createTeam(owner, "Captain", "Fleet", 5);
+            repository.invite(owner, invitee, "Sailor", Duration.ofHours(2), 5);
+
+            repository.deny(invitee, "", "Sailor");
+            assertTrue(repository.pendingInvitations(invitee, "Sailor").isEmpty());
+        }
+    }
 }
