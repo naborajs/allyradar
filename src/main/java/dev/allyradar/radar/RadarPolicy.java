@@ -18,8 +18,7 @@ public final class RadarPolicy {
         }
         return switch (preferences.visibility()) {
             case PRIVATE -> VisibilityMode.PRIVATE;
-            case TEAM -> (team != null && team.isPresent()) ? VisibilityMode.TEAM : VisibilityMode.PRIVATE;
-            case PUBLIC -> VisibilityMode.PUBLIC;
+            case TEAM, PUBLIC -> (team != null && team.isPresent()) ? VisibilityMode.TEAM : (preferences.visibility() == VisibilityMode.PUBLIC ? VisibilityMode.PUBLIC : VisibilityMode.PRIVATE);
         };
     }
 
@@ -35,14 +34,29 @@ public final class RadarPolicy {
         if (targetPreferences == null) {
             return false;
         }
+
+        // 1. If target belongs to a team, STRICT team isolation applies:
+        // ONLY teammates in the exact same team can EVER track them!
+        // No player outside the team (solo or another team) can EVER track a teamed player!
+        if (targetTeam != null && targetTeam.isPresent()) {
+            if (viewerTeam == null || viewerTeam.isEmpty()) {
+                return false; // Viewer is outside the team (solo) -> strictly DENIED
+            }
+            if (viewerTeam.get().id() != targetTeam.get().id()) {
+                return false; // Viewer is on another team (enemy) -> strictly DENIED
+            }
+            if (!viewerTeam.get().radarEnabled() || !targetTeam.get().radarEnabled()) {
+                return false; // Team radar is turned off -> DENIED
+            }
+            // Teammates can track each other unless the target explicitly hid with PRIVATE
+            return targetPreferences.visibility() != VisibilityMode.PRIVATE;
+        }
+
+        // 2. Target is SOLO (no team):
         final VisibilityMode effective = effectiveVisibility(targetPreferences, targetTeam);
         return switch (effective) {
-            case PRIVATE -> false;
-            case TEAM -> viewerTeam != null && viewerTeam.isPresent()
-                    && targetTeam.get().id() == viewerTeam.get().id()
-                    && targetTeam.get().radarEnabled()
-                    && viewerTeam.get().radarEnabled();
-            case PUBLIC -> publicRadarEnabled;
+            case PRIVATE, TEAM -> false; // Solo player is hidden unless they opted into PUBLIC
+            case PUBLIC -> publicRadarEnabled; // Solo player chose PUBLIC -> visible if public radar enabled
         };
     }
 
@@ -57,7 +71,7 @@ public final class RadarPolicy {
         return switch (targetPreferences.visibility()) {
             case PRIVATE -> false;
             case TEAM -> sameTeam && teamRadarEnabled;
-            case PUBLIC -> publicRadarEnabled;
+            case PUBLIC -> sameTeam ? teamRadarEnabled : publicRadarEnabled;
         };
     }
 }
