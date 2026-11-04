@@ -12,5 +12,11 @@ radar-max-distance: 1000.0
 # BOTH       - Render simultaneously in both action bar and boss bar
 # DISABLED   - Disable HUD radar display
 radar-display-mode: ACTION_BAR
+# Native Minecraft Locator Bar (XP Bar waypoint dots in 1.21.6+ / Paper 26.3)
+# When ProtocolLib is installed, AllyRadar intercepts and filters waypoint packets
+# so ONLY authorized teammates see each other on the XP bar. Non-teammates are hidden.
+# When ProtocolLib is not installed, AllyRadar dynamically zeroes the waypoint transmit range
+# for private and solo players to prevent vanilla Minecraft from leaking their location.
+locator-bar-filter-enabled: true
 public-radar-enabled: false
 debug: false
