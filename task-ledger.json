@@ -53,6 +53,12 @@
       "title": "Public Radar Activation, Crystal-Clear /ally Status & Command Usability Overhaul",
       "status": "completed",
       "summary": "Fixed public radar tracking by defaulting public-radar-enabled to true across configuration, providers, and packet filters so solo players setting /ally public can immediately see each other; redesigned /ally status with high-clarity color-coded outputs answering team, visibility, and radar screen state; overhauled command feedback on all toggles; added aliases /ally join, /ally delete, /ally hide; handled solo owner leave auto-disband. All 70 unit and integration tests passing. SHA256: 948C8699CD2B4E778072A35B5A7096F8D9186A29D251FBBD13EBD728108125BF."
+    },
+    {
+      "milestoneId": "m9-strict-team-privacy-isolation-and-command-pruning",
+      "title": "Strict Team Privacy Isolation, Outside Tracking Prevention & Duplicate Command Pruning",
+      "status": "completed",
+      "summary": "Enforced non-negotiable team boundary in RadarPolicy preventing outside solo or enemy team players from tracking teamed players; intercepted /ally public in teams to lock to TEAM ONLY; removed /ally radar and pruned redundant tab completions; verified all unit and privacy tests passing. SHA256: C8C1818BA2C0739DBE5D9ACA0414D95CFCEE1519FC261AFE9B089F9BBC15504F."
     }
   ],
   "tasks": []
