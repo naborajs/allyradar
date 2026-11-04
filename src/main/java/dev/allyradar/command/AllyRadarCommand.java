@@ -298,20 +298,16 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage("§7(To share with teammates: §f/ally team §7| To share with everyone: §f/ally public§7)");
             }
             case "public" -> {
-                if (team.isPresent()) {
-                    plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.TEAM);
-                    plugin.invalidateAndRefreshAll();
-                    player.sendMessage("§b[AllyRadar] §eNotice: §7You are in team §e'" + team.get().name() + "'§7!");
-                    player.sendMessage("§b[AllyRadar] §aLocation set to TEAM ONLY. §7Only your teammates can see your location. Players outside your team cannot see you.");
-                    return true;
-                }
                 final boolean publicEnabled = plugin.getConfig().getBoolean("public-radar-enabled", true);
                 plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.PUBLIC);
                 plugin.invalidateAndRefreshAll();
                 if (!publicEnabled) {
                     player.sendMessage("§b[AllyRadar] §eWarning: §7Public radar is currently disabled in the server config.");
+                } else if (team.isPresent()) {
+                    player.sendMessage("§b[AllyRadar] §aLocation set to PUBLIC (Everyone)! §7You are now visible to §eEVERYONE §7on the server (both teammates and outside players).");
+                    player.sendMessage("§7(To restrict your location back to teammates only, type §f/ally team§7).");
                 } else {
-                    player.sendMessage("§b[AllyRadar] §aLocation set to PUBLIC! §7Everyone on the server with radar turned on can now see your location!");
+                    player.sendMessage("§b[AllyRadar] §aLocation set to PUBLIC (Everyone)! §7Everyone on the server with radar turned on can now see your location!");
                     player.sendMessage("§7(To hide yourself again at any time, type §f/ally private§7).");
                 }
             }
@@ -322,8 +318,8 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage("§b[AllyRadar] §eLocation set to TEAM. §7Since you are playing solo without a team, you remain §cHIDDEN (Private) §7until you join a team.");
                     player.sendMessage("§7(To share with everyone: §f/ally public §7| To create a team: §f/ally create <name>§7)");
                 } else {
-                    player.sendMessage("§b[AllyRadar] §aLocation set to TEAM! §7Only your teammates in '" + team.get().name() + "' can see your location.");
-                    player.sendMessage("§7(To hide from teammates too: §f/ally private §7| To share with everyone: §f/ally public§7)");
+                    player.sendMessage("§b[AllyRadar] §aLocation set to TEAM ONLY! §7Only your teammates in '" + team.get().name() + "' can see your location. Outside players cannot see you.");
+                    player.sendMessage("§7(To share with everyone on the server: §f/ally public §7| To hide: §f/ally private§7)");
                 }
             }
             case "visibility" -> {
