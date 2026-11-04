@@ -3,6 +3,7 @@ version: '${version}'
 main: dev.allyradar.AllyRadar
 api-version: '26.3'
 authors: [Naboraj Sarkar]
+softdepend: [ProtocolLib]
 description: Privacy-preserving team management and teammate radar for Paper.
 commands:
   ally:
