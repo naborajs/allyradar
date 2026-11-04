@@ -110,11 +110,20 @@ class LocatorBarPrivacyTest {
         assertTrue(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
                 Optional.empty(), Optional.empty(), true), "Solo players with PUBLIC visibility must be trackable when public radar is enabled");
 
-        // Player outside team (solo or another team) CANNOT track teamed player even if teamed player has PUBLIC
-        assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
-                Optional.empty(), Optional.of(teamA), true), "Outside solo player must NEVER track a teamed player");
-        assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
-                Optional.of(teamB), Optional.of(teamA), true), "Enemy team player must NEVER track a teamed player");
+        // Player with TEAM visibility: outside player CANNOT track
+        final PlayerPreferences teamVis = new PlayerPreferences(VisibilityMode.TEAM, true);
+        assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, teamVis,
+                Optional.empty(), Optional.of(teamA), true), "Outside solo player must NEVER track a player with TEAM visibility");
+        assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, teamVis,
+                Optional.of(teamB), Optional.of(teamA), true), "Enemy team player must NEVER track a player with TEAM visibility");
+        assertTrue(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, teamVis,
+                Optional.of(teamA), Optional.of(teamA), true), "Teammate in same team CAN track a player with TEAM visibility");
+
+        // Player who explicitly sets PUBLIC: can be tracked by everyone on the server
+        assertTrue(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
+                Optional.empty(), Optional.of(teamA), true), "Teamed player who chooses PUBLIC can be tracked by outside solo player");
+        assertTrue(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
+                Optional.of(teamB), Optional.of(teamA), true), "Teamed player who chooses PUBLIC can be tracked by enemy team player");
     }
 
     private double calculateTransmitRange(final VisibilityMode effective, final boolean filterActive) {
