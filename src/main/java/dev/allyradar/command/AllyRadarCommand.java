@@ -14,8 +14,12 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
@@ -28,69 +32,120 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
         try {
-            if ((label.equalsIgnoreCase("team") || label.equalsIgnoreCase("radar"))
-                    && !sender.hasPermission("allyradar.use")) {
+            if (!sender.hasPermission("allyradar.use")) {
                 sender.sendMessage("[AllyRadar] You do not have permission.");
                 return true;
             }
-            if (label.equalsIgnoreCase("team")) {
+            final String cmd = label.toLowerCase(Locale.ROOT);
+            if (cmd.equals("team")) {
                 return team(sender, args);
             }
-            if (label.equalsIgnoreCase("radar")) {
+            if (cmd.equals("radar")) {
                 return radar(sender, args);
             }
-            return root(sender, args);
+            return ally(sender, args);
         } catch (IllegalArgumentException | IllegalStateException exception) {
             sender.sendMessage("[AllyRadar] " + exception.getMessage());
             return true;
         }
     }
 
-    private boolean root(final CommandSender sender, final String[] args) {
-        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("allyradar.admin")) {
-                sender.sendMessage("[AllyRadar] You do not have permission.");
-                return true;
-            }
-            plugin.reloadConfig();
-            plugin.reloadRadarConfig();
-            sender.sendMessage("[AllyRadar] Configuration reloaded. Restart to apply radar interval or database changes.");
+    private boolean ally(final CommandSender sender, final String[] args) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
+            sendGeneralHelp(sender);
             return true;
         }
-        sender.sendMessage("[AllyRadar] Use /team or /radar. Radar uses filtered action-bar output; exact coordinates are never displayed.");
+        final String sub = args[0].toLowerCase(Locale.ROOT);
+        if (sub.equals("reload")) {
+            return reload(sender);
+        }
+        if (sub.equals("team")) {
+            final String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+            return team(sender, subArgs);
+        }
+        if (sub.equals("radar")) {
+            final String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+            return radar(sender, subArgs);
+        }
+        // Direct shortcuts for team commands: /ally create, invite, accept, deny, leave, kick, transfer, info, list, disband, settings
+        if (List.of("create", "invite", "accept", "deny", "leave", "kick", "transfer", "info", "list", "disband", "settings").contains(sub)) {
+            return team(sender, args);
+        }
+        // Direct shortcuts for radar commands: /ally on, off, private, team, public, visibility, status, who
+        if (List.of("on", "off", "private", "public", "visibility", "status", "who").contains(sub)) {
+            return radar(sender, args);
+        }
+        sendGeneralHelp(sender);
         return true;
+    }
+
+    private boolean reload(final CommandSender sender) {
+        if (!sender.hasPermission("allyradar.admin")) {
+            sender.sendMessage("[AllyRadar] You do not have permission.");
+            return true;
+        }
+        plugin.reloadConfig();
+        plugin.reloadRadarConfig();
+        sender.sendMessage("[AllyRadar] Configuration reloaded. Restart to apply radar interval or database changes.");
+        return true;
+    }
+
+    private void sendGeneralHelp(final CommandSender sender) {
+        sender.sendMessage("[AllyRadar] ===== AllyRadar Help =====");
+        sender.sendMessage("[AllyRadar] /ally create <name> - Create a team");
+        sender.sendMessage("[AllyRadar] /ally invite <player> - Invite a player");
+        sender.sendMessage("[AllyRadar] /ally accept [team] - Accept team invitation");
+        sender.sendMessage("[AllyRadar] /ally deny [team] - Decline team invitation");
+        sender.sendMessage("[AllyRadar] /ally leave - Leave your team");
+        sender.sendMessage("[AllyRadar] /ally list - List team members");
+        sender.sendMessage("[AllyRadar] /ally info - View team details");
+        sender.sendMessage("[AllyRadar] /ally on / off - Turn radar HUD on/off");
+        sender.sendMessage("[AllyRadar] /ally private - Hide your location from everyone");
+        sender.sendMessage("[AllyRadar] /ally visibility <private|team|public> - Change sharing");
+        sender.sendMessage("[AllyRadar] /ally status - View radar and team status");
+        sender.sendMessage("[AllyRadar] (All commands also work via /team and /radar)");
     }
 
     private boolean team(final CommandSender sender, final String[] args) {
         final Player player = player(sender);
-        if (args.length == 0) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             sendTeamHelp(player);
             return true;
         }
-        switch (args[0].toLowerCase()) {
+        switch (args[0].toLowerCase(Locale.ROOT)) {
             case "create" -> {
                 requireArgs(args, 2);
                 final TeamSummary team = plugin.repository().createTeam(player.getUniqueId(), player.getName(), join(args, 1), plugin.maximumTeamSize());
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Created team " + team.name() + ".");
+                player.sendMessage("[AllyRadar] Created team " + team.name() + "!");
             }
             case "invite" -> {
                 requireArgs(args, 2);
-                final OfflinePlayer target = plugin.getServer().getOfflinePlayer(args[1]);
-                plugin.repository().invite(player.getUniqueId(), target.getUniqueId(), args[1],
+                final String targetArg = args[1];
+                final Player onlineTarget = resolveOnlinePlayer(targetArg);
+                final UUID targetUuid = onlineTarget != null ? onlineTarget.getUniqueId() : offline(targetArg).getUniqueId();
+                final String targetName = onlineTarget != null ? onlineTarget.getName() : targetArg;
+                final Optional<TeamSummary> myTeam = plugin.team(player);
+                final String teamName = myTeam.map(TeamSummary::name).orElse("your team");
+
+                plugin.repository().invite(player.getUniqueId(), targetUuid, targetName,
                         Duration.ofHours(plugin.invitationExpirationHours()),
                         plugin.maximumTeamSize());
-                player.sendMessage("[AllyRadar] Invitation sent to " + args[1] + ".");
+                player.sendMessage("[AllyRadar] Invitation sent to " + targetName + ".");
+                if (onlineTarget != null && onlineTarget.isOnline()) {
+                    onlineTarget.sendMessage("[AllyRadar] You have been invited to join team '" + teamName + "' by " + player.getName() + "!");
+                    onlineTarget.sendMessage("[AllyRadar] Type /team accept or /ally accept to join!");
+                }
             }
             case "accept" -> {
-                requireArgs(args, 2);
-                final TeamSummary team = plugin.repository().accept(player.getUniqueId(), join(args, 1), player.getName(), plugin.maximumTeamSize());
+                final String teamArg = args.length >= 2 ? join(args, 1) : "";
+                final TeamSummary team = plugin.repository().accept(player.getUniqueId(), teamArg, player.getName(), plugin.maximumTeamSize());
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Joined " + team.name() + ".");
+                player.sendMessage("[AllyRadar] Joined team " + team.name() + "!");
             }
             case "deny" -> {
-                requireArgs(args, 2);
-                plugin.repository().deny(player.getUniqueId(), join(args, 1));
+                final String teamArg = args.length >= 2 ? join(args, 1) : "";
+                plugin.repository().deny(player.getUniqueId(), teamArg, player.getName());
                 player.sendMessage("[AllyRadar] Invitation declined.");
             }
             case "leave" -> {
@@ -100,13 +155,17 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             }
             case "kick" -> {
                 requireArgs(args, 2);
-                plugin.repository().kick(player.getUniqueId(), offline(args[1]).getUniqueId());
+                final Player onlineTarget = resolveOnlinePlayer(args[1]);
+                final UUID targetUuid = onlineTarget != null ? onlineTarget.getUniqueId() : offline(args[1]).getUniqueId();
+                plugin.repository().kick(player.getUniqueId(), targetUuid);
                 plugin.invalidateAndRefreshAll();
                 player.sendMessage("[AllyRadar] Player removed from the team.");
             }
             case "transfer" -> {
                 requireArgs(args, 2);
-                plugin.repository().transfer(player.getUniqueId(), offline(args[1]).getUniqueId());
+                final Player onlineTarget = resolveOnlinePlayer(args[1]);
+                final UUID targetUuid = onlineTarget != null ? onlineTarget.getUniqueId() : offline(args[1]).getUniqueId();
+                plugin.repository().transfer(player.getUniqueId(), targetUuid);
                 plugin.invalidateAndRefreshAll();
                 player.sendMessage("[AllyRadar] Ownership transferred.");
             }
@@ -127,11 +186,13 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         final Player player = player(sender);
         if (args.length == 0 || args[0].equalsIgnoreCase("status")) {
             final PlayerPreferences preferences = plugin.preferences(player);
-            player.sendMessage("[AllyRadar] Sharing: " + preferences.visibility() + ", receiving radar: "
-                    + (preferences.radarEnabled() ? "ON" : "OFF") + ".");
+            final Optional<TeamSummary> team = plugin.team(player);
+            player.sendMessage("[AllyRadar] Radar receiving: " + (preferences.radarEnabled() ? "ON" : "OFF")
+                    + " | Location sharing: " + preferences.visibility()
+                    + " | Team: " + team.map(TeamSummary::name).orElse("None"));
             return true;
         }
-        switch (args[0].toLowerCase()) {
+        switch (args[0].toLowerCase(Locale.ROOT)) {
             case "on" -> {
                 plugin.repository().setRadarEnabled(player.getUniqueId(), true);
                 plugin.invalidateAndRefreshAll();
@@ -139,18 +200,39 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             }
             case "off" -> {
                 plugin.repository().setRadarEnabled(player.getUniqueId(), false);
+                plugin.radarProvider().clear(player);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Radar receiving disabled.");
+                player.sendMessage("[AllyRadar] Radar receiving disabled. (To hide yourself from teammates, use /radar private or /ally private)");
+            }
+            case "private" -> {
+                plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.PRIVATE);
+                plugin.invalidateAndRefreshAll();
+                player.sendMessage("[AllyRadar] Location sharing set to PRIVATE. You are hidden from all player radars.");
+            }
+            case "public" -> {
+                plugin.repository().setVisibility(player.getUniqueId(), VisibilityMode.PUBLIC);
+                plugin.invalidateAndRefreshAll();
+                player.sendMessage("[AllyRadar] Location sharing set to PUBLIC.");
             }
             case "visibility" -> {
-                requireArgs(args, 2);
-                final VisibilityMode mode = VisibilityMode.parse(args[1]);
+                if (args.length < 2) {
+                    player.sendMessage("[AllyRadar] Use /radar visibility <private|team|public> (or /radar private).");
+                    return true;
+                }
+                final String modeArg = args[1].toLowerCase(Locale.ROOT);
+                final VisibilityMode mode = switch (modeArg) {
+                    case "off", "hide", "private" -> VisibilityMode.PRIVATE;
+                    case "on", "team" -> VisibilityMode.TEAM;
+                    case "public" -> VisibilityMode.PUBLIC;
+                    default -> VisibilityMode.parse(args[1]);
+                };
                 plugin.repository().setVisibility(player.getUniqueId(), mode);
                 plugin.invalidateAndRefreshAll();
-                player.sendMessage("[AllyRadar] Location sharing set to " + mode + ".");
+                player.sendMessage("[AllyRadar] Location sharing set to " + mode + "."
+                        + (mode == VisibilityMode.PRIVATE ? " You are hidden from all player radars." : ""));
             }
             case "who" -> radarWho(player);
-            default -> player.sendMessage("[AllyRadar] Use /radar on, off, visibility <private|team|public>, status, or who.");
+            default -> player.sendMessage("[AllyRadar] Use /radar on, off, private, visibility <private|team|public>, status, or who.");
         }
         return true;
     }
@@ -186,7 +268,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
         if (!args[1].equalsIgnoreCase("radar")) {
             throw new IllegalArgumentException("Use /team settings radar <on|off>.");
         }
-        final boolean enabled = switch (args[2].toLowerCase()) {
+        final boolean enabled = switch (args[2].toLowerCase(Locale.ROOT)) {
             case "on" -> true;
             case "off" -> false;
             default -> throw new IllegalArgumentException("Use on or off.");
@@ -197,7 +279,7 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendTeamHelp(final Player player) {
-        player.sendMessage("[AllyRadar] /team create <name>, invite <player>, accept <team>, deny <team>, leave");
+        player.sendMessage("[AllyRadar] /team create <name>, invite <player>, accept [team], deny [team], leave");
         player.sendMessage("[AllyRadar] /team kick <player>, transfer <player>, info, list, settings radar <on|off>, disband");
     }
 
@@ -206,6 +288,11 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
             throw new IllegalArgumentException("This command must be run by a player.");
         }
         return player;
+    }
+
+    private Player resolveOnlinePlayer(final String name) {
+        final Player exact = plugin.getServer().getPlayerExact(name);
+        return exact != null ? exact : plugin.getServer().getPlayer(name);
     }
 
     private OfflinePlayer offline(final String name) {
@@ -219,20 +306,34 @@ public final class AllyRadarCommand implements CommandExecutor, TabCompleter {
     }
 
     private String join(final String[] args, final int start) {
-        return String.join(" ", java.util.Arrays.copyOfRange(args, start, args.length));
+        return String.join(" ", Arrays.copyOfRange(args, start, args.length));
     }
 
     @Override
     public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
-        final List<String> values = switch (alias.toLowerCase()) {
-            case "team" -> args.length == 1
+        final String main = alias.toLowerCase(Locale.ROOT);
+        final List<String> values;
+        if (main.equals("ally") || main.equals("allyradar") || main.equals("ar")) {
+            if (args.length == 1) {
+                values = List.of("help", "create", "invite", "accept", "deny", "leave", "kick", "transfer", "info", "list", "disband", "settings", "radar", "on", "off", "private", "status", "visibility", "who", "reload");
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("settings")) {
+                values = List.of("radar");
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("visibility")) {
+                values = List.of("private", "team", "public");
+            } else {
+                values = List.of();
+            }
+        } else if (main.equals("team")) {
+            values = args.length == 1
                     ? List.of("create", "invite", "accept", "deny", "leave", "kick", "transfer", "info", "list", "settings", "disband")
                     : args.length == 2 && args[0].equalsIgnoreCase("settings") ? List.of("radar") : List.of();
-            case "radar" -> args.length == 1 ? List.of("on", "off", "visibility", "status", "who")
+        } else if (main.equals("radar")) {
+            values = args.length == 1 ? List.of("on", "off", "private", "visibility", "status", "who")
                     : args.length == 2 && args[0].equalsIgnoreCase("visibility") ? List.of("private", "team", "public") : List.of();
-            default -> List.of("reload");
-        };
-        final String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase();
+        } else {
+            values = List.of("reload");
+        }
+        final String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(Locale.ROOT);
         return values.stream().filter(value -> value.startsWith(prefix)).sorted().toList();
     }
 }
