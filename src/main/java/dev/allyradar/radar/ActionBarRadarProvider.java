@@ -42,7 +42,7 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
         final PlayerPreferences viewerPreferences = access.preferences(viewer);
         if (!viewerPreferences.radarEnabled()) {
             if (activeHudViewers.remove(viewer.getUniqueId())) {
-                viewer.sendActionBar(Component.empty());
+                viewer.sendActionBar(Component.text(" "));
             }
             return;
         }
@@ -68,7 +68,7 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
         visible.sort(Comparator.comparingDouble(TrackedResult::distance));
         if (visible.isEmpty()) {
             if (activeHudViewers.remove(viewer.getUniqueId())) {
-                viewer.sendActionBar(Component.empty());
+                viewer.sendActionBar(Component.text(" "));
             }
             return;
         }
@@ -91,7 +91,7 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
     @Override
     public void clear(final Player viewer) {
         activeHudViewers.remove(viewer.getUniqueId());
-        viewer.sendActionBar(Component.empty());
+        viewer.sendActionBar(Component.text(" "));
     }
 
     public static double relativeBearing(final Location viewer, final Location target) {
