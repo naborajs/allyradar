@@ -88,13 +88,15 @@ All commands can be executed easily using the main `/ally` command.
 * `/ally team` — Share your location **ONLY with your teammates**. If you have no team (solo), your location remains hidden.
 * `/ally public` — Share your location with **EVERYONE on the server**. Any nearby player with radar turned on can see your direction and distance.
 
-### B. Radar Screen Controls (Can you see others?):
-* `/ally on` — Turn **ON** your radar screen to see nearby teammates and public players.
-* `/ally off` — Turn **OFF** your radar screen. Hides all HUD displays and removes XP bar dots.
+### B. Radar Screen & Display Controls (Can you see others?):
+* `/ally on` — Turn **ON** radar screen & share location with teammates.
+* `/ally off` — Turn **OFF** radar screen & hide your location completely (`PRIVATE`).
+* `/ally hud [on|off]` — **Toggle or turn off the text at the bottom of the screen** (Action Bar HUD). If you prefer only using the XP bar dots and find the text intrusive, run `/ally hud off`!
+* `/ally radius <meters>` — **Customize your radar detection distance** (e.g. `/ally radius 50` to only see players within 50 blocks). Run `/ally radius reset` to return to server maximum.
 
 ### C. Checking Your Status:
-* `/ally status` — View a clear, friendly summary: your current team, who can see your location, and whether your radar screen is on or off.
-* `/ally who` — Lists all players currently visible to you and their distance in blocks.
+* `/ally status` — View a clear, friendly summary: your current team, who can see your location, radar master state, text HUD state, and detection radius.
+* `/ally who` — Lists all players currently visible to you and their distance in blocks (filtered by your detection radius).
 
 ### D. Team Management:
 * `/ally create <team_name>` — Create a new team with you as the owner.
@@ -110,11 +112,21 @@ All commands can be executed easily using the main `/ally` command.
 
 ---
 
-## 5. GeyserMC & Floodgate (Bedrock Support)
+## 5. GeyserMC & Floodgate (Bedrock Touch & Controller Support)
 
-AllyRadar is fully compatible with GeyserMC and Floodgate:
-* Bedrock players with prefixes (e.g., `.Aloneboy18k`) can create teams, receive invites, and accept invites seamlessly.
-* Offline-mode and Floodgate UUID translation is handled transparently in both database storage and commands.
+AllyRadar is 100% optimized for Bedrock players on mobile touchscreens and console controllers:
+* **Short Shorthand `/a`**: Bedrock players can use `/a` instead of typing `/ally`:
+  * `/a on` — Turn on radar
+  * `/a off` — Turn off radar
+  * `/a hud` — Toggle bottom text on/off
+  * `/a radius 50` — Set radar range to 50 meters
+  * `/a public` — Share with all (solo)
+  * `/a private` — Hide completely
+  * `/a accept` — Accept team invite
+  * `/a leave` — Leave team
+  * `/a status` — View status
+  * `/a bedrock` — View Bedrock guide
+* Bedrock usernames starting with `.` (e.g. `.Aloneboy18k`) are fully supported for invitations and team commands.
 * Wiping cleared radar action bars uses whitespace packets so Bedrock clients immediately clear stale HUD text.
 
 ---
