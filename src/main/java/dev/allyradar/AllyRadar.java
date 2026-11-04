@@ -234,7 +234,7 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
     }
 
     public RadarCompatibilityProvider createRadarProvider(final String mode) {
-        final boolean publicRadar = getConfig().getBoolean("public-radar-enabled", false);
+        final boolean publicRadar = getConfig().getBoolean("public-radar-enabled", true);
         final String normalized = mode == null ? "ACTION_BAR" : mode.trim().toUpperCase(Locale.ROOT);
         return switch (normalized) {
             case "BOSS_BAR" -> new BossBarRadarProvider(this, this, radarMaxDistance, publicRadar);
@@ -265,6 +265,10 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
 
     public long invitationExpirationHours() {
         return invitationExpirationHours;
+    }
+
+    public double radarMaxDistance() {
+        return radarMaxDistance;
     }
 
     public void clearCaches() {
