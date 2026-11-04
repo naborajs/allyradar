@@ -18,5 +18,6 @@ radar-display-mode: ACTION_BAR
 # When ProtocolLib is not installed, AllyRadar dynamically zeroes the waypoint transmit range
 # for private and solo players to prevent vanilla Minecraft from leaking their location.
 locator-bar-filter-enabled: true
-public-radar-enabled: false
+# Allow public radar tracking (when true, players who set /ally public are visible to anyone with radar)
+public-radar-enabled: true
 debug: false
