@@ -65,6 +65,12 @@
       "title": "Bottom Text HUD Toggle, Customizable Detection Radius & Bedrock Touch Quick Commands",
       "status": "completed",
       "summary": "Added /ally hud [on|off] toggle to hide/show action bar text independently from XP-bar locator dots; added SQLite schema migration 2 for persistent hud_enabled and custom_radius; added /ally radius <meters> (and /ally radius reset) to customize player tracking distance; registered short command /a and /a bedrock touch & controller quick guide; updated ActionBarRadarProvider, BossBarRadarProvider, ProtocolLibLocatorAdapter, and /ally status. All 71 tests passing. SHA256: 407E7EE5C9C0C1D22315AD88C14485EFA2A8A90DA1CCFA012F13EA1B2CA76755."
+    },
+    {
+      "milestoneId": "m11-explicit-serverwide-public-radar",
+      "title": "Explicit Server-Wide Public Radar Sharing for Both Teamed and Solo Players",
+      "status": "completed",
+      "summary": "Restored /ally public (and /a public, /radar public) to allow any player (teamed or solo) to deliberately broadcast location to all players across the server; clarified /ally team for teammates-only privacy; updated RadarPolicy and automated test suites. SHA256: 3205CA52038F166763D805AB2C3942E8C3BBECD62351AFB3C000A93850EA9BC2."
     }
   ],
   "tasks": []
