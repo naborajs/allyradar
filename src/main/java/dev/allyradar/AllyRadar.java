@@ -51,7 +51,7 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
                 getConfig().getBoolean("default-team-radar-enabled", true));
         radarProvider = createRadarProvider(getConfig().getString("radar-display-mode", "ACTION_BAR"));
         final AllyRadarCommand command = new AllyRadarCommand(this);
-        registerCommand("allyradar", command);
+        registerCommand("ally", command);
         registerCommand("team", command);
         registerCommand("radar", command);
         getServer().getPluginManager().registerEvents(this, this);
