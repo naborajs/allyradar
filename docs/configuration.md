@@ -10,6 +10,7 @@ default-team-radar-enabled: true
 radar-update-interval-ticks: 20
 radar-max-distance: 1000.0
 public-radar-enabled: false
+radar-display-mode: ACTION_BAR
 debug: false
 ```
 
@@ -22,6 +23,7 @@ debug: false
 - `radar-update-interval-ticks`: action-bar refresh interval.
 - `radar-max-distance`: maximum same-dimension tracking distance.
 - `public-radar-enabled`: explicit server opt-in for PUBLIC sharing.
+- `radar-display-mode`: radar HUD presentation (`ACTION_BAR`, `BOSS_BAR`, `BOTH`, `DISABLED`).
 - `debug`: reserved for future non-sensitive diagnostics.
 
 Unsafe low values are clamped at startup: team size and invitation lifetime cannot be below their safe minimums, and radar interval and range cannot be zero or negative. Startup-only values are not changed by `/allyradar reload`.
