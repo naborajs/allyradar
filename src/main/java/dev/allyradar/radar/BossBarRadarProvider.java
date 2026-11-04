@@ -39,10 +39,13 @@ public final class BossBarRadarProvider implements RadarCompatibilityProvider {
     @Override
     public void render(final Player viewer) {
         final PlayerPreferences viewerPreferences = access.preferences(viewer);
-        if (!viewerPreferences.radarEnabled()) {
+        if (!viewerPreferences.radarEnabled() || !viewerPreferences.hudEnabled()) {
             clear(viewer);
             return;
         }
+        final double effectiveMaxDistance = viewerPreferences.customRadius() > 0.0
+                ? Math.min(viewerPreferences.customRadius(), maxDistance)
+                : maxDistance;
         final Optional<TeamSummary> viewerTeam = access.team(viewer);
         final List<TrackedResult> visible = new ArrayList<>();
         for (final Player target : plugin.getServer().getOnlinePlayers()) {
@@ -56,7 +59,7 @@ public final class BossBarRadarProvider implements RadarCompatibilityProvider {
                 continue;
             }
             final double distance = viewer.getLocation().distance(target.getLocation());
-            if (distance > maxDistance) {
+            if (distance > effectiveMaxDistance) {
                 continue;
             }
             visible.add(new TrackedResult(target.getName(), distance,
