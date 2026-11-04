@@ -156,4 +156,35 @@ class AllyRepositoryTest {
             assertTrue(repository.pendingInvitations(invitee, "Sailor").isEmpty());
         }
     }
+
+    @Test
+    void soleOwnerCallingLeaveDisbandsTeam() {
+        final File database = temporaryDirectory.resolve("sole_owner_leave.db").toFile();
+        final UUID owner = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            repository.createTeam(owner, "Alice", "SoloCrew", 5);
+            assertTrue(repository.teamOf(owner).isPresent());
+
+            // Owner is the only member and calls leave -> should auto-disband
+            repository.leave(owner);
+            assertTrue(repository.teamOf(owner).isEmpty(), "Leaving as the sole member must disband the team");
+        }
+    }
+
+    @Test
+    void ownerWithMembersCallingLeaveThrowsGuidance() {
+        final File database = temporaryDirectory.resolve("owner_with_members.db").toFile();
+        final UUID owner = UUID.randomUUID();
+        final UUID member = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            repository.createTeam(owner, "Alice", "DuoCrew", 5);
+            repository.invite(owner, member, "Bob", Duration.ofHours(1), 5);
+            repository.accept(member, "", "Bob", 5);
+
+            // Owner tries to leave while another member is in the team
+            final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> repository.leave(owner));
+            assertTrue(ex.getMessage().contains("disband"));
+            assertTrue(repository.teamOf(owner).isPresent());
+        }
+    }
 }
