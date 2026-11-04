@@ -9,15 +9,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ActionBarRadarProvider implements RadarCompatibilityProvider {
     private final JavaPlugin plugin;
     private final AllyRadarAccess access;
     private final double maxDistance;
     private final boolean publicRadarEnabled;
+    private final Set<UUID> activeHudViewers = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public ActionBarRadarProvider(final JavaPlugin plugin, final AllyRadarAccess access,
                                   final double maxDistance, final boolean publicRadarEnabled) {
@@ -36,7 +41,9 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
     public void render(final Player viewer) {
         final PlayerPreferences viewerPreferences = access.preferences(viewer);
         if (!viewerPreferences.radarEnabled()) {
-            clear(viewer);
+            if (activeHudViewers.remove(viewer.getUniqueId())) {
+                viewer.sendActionBar(Component.empty());
+            }
             return;
         }
         final Optional<TeamSummary> viewerTeam = access.team(viewer);
@@ -46,10 +53,9 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
                 continue;
             }
             final PlayerPreferences targetPreferences = access.preferences(target);
-            final boolean sameTeam = viewerTeam.isPresent() && access.sameTeam(viewer, target);
-            final boolean teamRadarEnabled = viewerTeam.map(TeamSummary::radarEnabled).orElse(false);
+            final Optional<TeamSummary> targetTeam = access.team(target);
             if (!RadarPolicy.canTrack(viewer.getUniqueId(), target.getUniqueId(), viewerPreferences,
-                    targetPreferences, sameTeam, teamRadarEnabled, publicRadarEnabled)) {
+                    targetPreferences, viewerTeam, targetTeam, publicRadarEnabled)) {
                 continue;
             }
             final double distance = viewer.getLocation().distance(target.getLocation());
@@ -61,9 +67,12 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
         }
         visible.sort(Comparator.comparingDouble(TrackedResult::distance));
         if (visible.isEmpty()) {
-            viewer.sendActionBar(Component.text("AllyRadar: no authorized teammates nearby", NamedTextColor.GRAY));
+            if (activeHudViewers.remove(viewer.getUniqueId())) {
+                viewer.sendActionBar(Component.empty());
+            }
             return;
         }
+        activeHudViewers.add(viewer.getUniqueId());
         final StringBuilder message = new StringBuilder("Radar ");
         for (int index = 0; index < Math.min(visible.size(), 4); index++) {
             if (index > 0) {
@@ -81,23 +90,21 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
 
     @Override
     public void clear(final Player viewer) {
+        activeHudViewers.remove(viewer.getUniqueId());
         viewer.sendActionBar(Component.empty());
     }
 
-    private double relativeBearing(final Location viewer, final Location target) {
-        final double absolute = Math.toDegrees(Math.atan2(target.getX() - viewer.getX(), target.getZ() - viewer.getZ()));
-        return ((absolute - viewer.getYaw() + 540.0) % 360.0) - 180.0;
+    public static double relativeBearing(final Location viewer, final Location target) {
+        return RadarMath.relativeBearing(viewer.getX(), viewer.getZ(), viewer.getYaw(), target.getX(), target.getZ());
     }
 
-    private String direction(final double bearing) {
-        if (bearing >= -22.5 && bearing < 22.5) return "↑";
-        if (bearing >= 22.5 && bearing < 67.5) return "↗";
-        if (bearing >= 67.5 && bearing < 112.5) return "→";
-        if (bearing >= 112.5 && bearing < 157.5) return "↘";
-        if (bearing >= 157.5 || bearing < -157.5) return "↓";
-        if (bearing >= -157.5 && bearing < -112.5) return "↙";
-        if (bearing >= -112.5 && bearing < -67.5) return "←";
-        return "↖";
+    public static double relativeBearing(final double viewerX, final double viewerZ, final float viewerYaw,
+                                         final double targetX, final double targetZ) {
+        return RadarMath.relativeBearing(viewerX, viewerZ, viewerYaw, targetX, targetZ);
+    }
+
+    public static String direction(final double bearing) {
+        return RadarMath.direction(bearing);
     }
 
     private record TrackedResult(String name, double distance, double bearing) {
