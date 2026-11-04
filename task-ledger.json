@@ -1,0 +1,41 @@
+{
+  "version": "1.0.0",
+  "project": "AllyRadar",
+  "branch": "main",
+  "status": "completed",
+  "lastUpdated": "2026-11-04T13:51:00.000Z",
+  "activeTask": null,
+  "milestones": [
+    {
+      "milestoneId": "m1-build-setup-baseline",
+      "title": "Gradle 9.8.2 Toolchain & Build Verification",
+      "status": "completed",
+      "summary": "Updated settings.gradle.kts with foojay-resolver-convention 1.0.0. Auto-provisioned Java 25. Verified compilation and testing against Paper 26.3."
+    },
+    {
+      "milestoneId": "m2-privacy-policy-repair",
+      "title": "Centralized Fail-Closed RadarPolicy & Effective Visibility",
+      "status": "completed",
+      "summary": "Fixed Bug 1 and Bug 2: Enforced fail-closed authorization, required target team for TEAM visibility, and computed effective visibility (TEAM without team -> PRIVATE)."
+    },
+    {
+      "milestoneId": "m3-immediate-revocation-lifecycle",
+      "title": "Immediate Cache Invalidation & Event Pipeline",
+      "status": "completed",
+      "summary": "Fixed Bug 3 and Bug A: Stored owner's real name instead of 'Owner' in createTeam, and added immediate invalidation and HUD refresh pipeline on commands, quit, join, and world changes."
+    },
+    {
+      "milestoneId": "m4-hud-behavior-and-display-modes",
+      "title": "Stuck Action Bar Resolution, Bearing Math Fix & BossBar Compatibility",
+      "status": "completed",
+      "summary": "Fixed Bug 4, 5, 6, and Bug D: Corrected Minecraft yaw trigonometry (atan2(-dx, dz)), eliminated stuck 'no authorized teammates' messages, added stateful HUD clearing, and implemented configurable BossBar/ActionBar modes."
+    },
+    {
+      "milestoneId": "m5-verification-and-single-file-commits",
+      "title": "Comprehensive Regression Testing & Verification",
+      "status": "completed",
+      "summary": "Executed 58 unit tests across 5 test suites with 100% pass rate. Verified SHA256 (9979973E0697BABCEEEA4C4AC099E0FD91BA394041744D16CEADCEFA244484EA). Prepared single-file conventional commits."
+    }
+  ],
+  "tasks": []
+}
