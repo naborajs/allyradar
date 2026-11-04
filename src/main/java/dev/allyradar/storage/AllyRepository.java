@@ -428,7 +428,11 @@ public final class AllyRepository implements AutoCloseable {
     public synchronized void leave(final UUID player) {
         final TeamSummary team = teamOf(player).orElseThrow(() -> new IllegalArgumentException("You are not in a team."));
         if (team.owner().equals(player)) {
-            throw new IllegalArgumentException("Transfer ownership or disband the team before leaving.");
+            if (team.memberCount() <= 1) {
+                disband(player);
+                return;
+            }
+            throw new IllegalArgumentException("You are the team owner. To disband the team, type /ally disband. To leave, first transfer ownership using /ally transfer <player>.");
         }
         removeMember(player);
     }
