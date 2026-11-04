@@ -33,8 +33,8 @@ AllyRadar is an open-source Paper plugin for persistent teams and consent-based 
 | Minecraft/Paper | Paper `26.3.build.238-stable` |
 | Java | 25 or newer |
 | Build | Gradle 9.8.2 via the included wrapper |
-| Radar | Filtered action bar |
-| Native locator bar | Not claimed; per-recipient filtering is not exposed by stable Paper APIs |
+| Radar | Filtered Action Bar, Adventure BossBar, or Native Locator Bar |
+| Native locator bar | Supported (via ProtocolLib packet filtering & Bukkit Attribute ranges) |
 
 See [`docs/compatibility.md`](docs/compatibility.md) for verified versus unverified status and the upgrade procedure.
 
@@ -108,9 +108,11 @@ The tracked player's setting controls disclosure:
 
 The receiver can disable their own radar. Offline players and players in another dimension are never included in the action-bar radar. Team owners cannot override `PRIVATE`. AllyRadar does not display exact coordinates and does not log player locations.
 
-### Native locator-bar limitation
+### Native locator-bar (XP Bar Waypoints)
 
-Paper's stable API does not provide per-recipient native locator-bar filtering. AllyRadar therefore does not pretend to provide private vanilla locator-bar markers. The current implementation uses a filtered action bar. A future packet adapter must be version-pinned, independently tested, and privacy-reviewed before activation.
+Minecraft 1.21.6+ (Paper 26.3) includes the native Locator Bar on the Experience Bar. AllyRadar provides dual-layer protection:
+1. **Dynamic Attribute Range Management**: Whenever a player chooses `PRIVATE` (or is solo without a team), AllyRadar sets their `WAYPOINT_TRANSMIT_RANGE` attribute to `0.0`, preventing vanilla Minecraft from emitting dots to anyone. Setting radar off zeroes `WAYPOINT_RECEIVE_RANGE`.
+2. **ProtocolLib Packet Adapter**: When ProtocolLib is installed, AllyRadar automatically intercepts `TRACKED_WAYPOINT` packets to ensure only same-team members see waypoint dots on their XP bar. If ProtocolLib is not installed, servers may set `/gamerule locator_bar false` and rely on AllyRadar's rich Action Bar or BossBar HUD. Detailed setup is available in [`docs/setup.md`](docs/setup.md).
 
 ## Configuration
 
