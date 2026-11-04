@@ -137,6 +137,14 @@ public final class ProtocolLibLocatorAdapter implements LocatorBarFilter {
 
             if (!canTrack) {
                 event.setCancelled(true);
+                return;
+            }
+
+            if (viewerPrefs.customRadius() > 0.0) {
+                final double distance = viewer.getLocation().distance(target.getLocation());
+                if (distance > viewerPrefs.customRadius()) {
+                    event.setCancelled(true);
+                }
             }
         } catch (final Throwable t) {
             // Fail closed: if an authorization evaluation fails, cancel the waypoint packet
