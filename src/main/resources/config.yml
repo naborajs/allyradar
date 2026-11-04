@@ -6,5 +6,11 @@ default-radar-enabled: true
 default-team-radar-enabled: true
 radar-update-interval-ticks: 20
 radar-max-distance: 1000.0
+# Radar HUD display mode. Options:
+# ACTION_BAR - Render radar target bearings in player's action bar
+# BOSS_BAR   - Render radar in a boss bar at top of screen (prevents action bar conflicts)
+# BOTH       - Render simultaneously in both action bar and boss bar
+# DISABLED   - Disable HUD radar display
+radar-display-mode: ACTION_BAR
 public-radar-enabled: false
 debug: false
