@@ -3,7 +3,7 @@
   "project": "AllyRadar",
   "branch": "main",
   "status": "completed",
-  "lastUpdated": "2026-11-04T13:51:00.000Z",
+  "lastUpdated": "2026-11-04T15:30:00.000Z",
   "activeTask": null,
   "milestones": [
     {
@@ -35,6 +35,12 @@
       "title": "Comprehensive Regression Testing & Verification",
       "status": "completed",
       "summary": "Executed 58 unit tests across 5 test suites with 100% pass rate. Verified SHA256 (9979973E0697BABCEEEA4C4AC099E0FD91BA394041744D16CEADCEFA244484EA). Prepared single-file conventional commits."
+    },
+    {
+      "milestoneId": "m6-live-gameplay-fixes-and-geyser-compatibility",
+      "title": "Live Gameplay Repair, /ally Command, Geyser / Bedrock / Offline-Mode & Auto-Accept",
+      "status": "completed",
+      "summary": "Fixed /team accept 'Not enough arguments' by auto-accepting single pending invitations; added Geyser Bedrock / Floodgate username-based invitation fallback; added /ally main command with rich help menu to prevent command overwrites; added invited player notification messages; added intuitive /radar private, /radar on, /radar off toggles; sent whitespace clear packets for Bedrock action-bar wiping. Verified 62/62 tests passing. SHA256: 45BA1FDA6B471D6E053A0CA202730A9289A2EE0498ED5B36BB0CDD23D8F48284."
     }
   ],
   "tasks": []
