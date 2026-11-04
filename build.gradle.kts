@@ -15,7 +15,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.3.build.238-stable")
     compileOnly("net.dmulloy2:ProtocolLib:5.4.0")
     implementation("org.xerial:sqlite-jdbc:3.50.3.0")
-    testImplementation(platform("org.junit:junit-bom:6.0.1"))
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.xerial:sqlite-jdbc:3.50.3.0")
