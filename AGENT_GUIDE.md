@@ -37,8 +37,8 @@ For code changes, then inspect `src/main/java`, `src/test/java`, `build.gradle.k
 | Paper API | `26.3.build.238-stable` |
 | Java | 25+ |
 | Artifact | `build/libs/AllyRadar-1.0.0.jar` |
-| Radar | Filtered action bar |
-| Native locator-bar privacy | Not implemented |
+| Radar | Filtered Action Bar, BossBar, or Native Locator Bar |
+| Native locator-bar privacy | Implemented (Attribute ranges + ProtocolLib packet filter) |
 
 Report these states separately: `compiled`, `automated-tested`, `loaded-tested`, `gameplay-tested`, and `privacy-tested`. Never claim a server test that was not run.
 
