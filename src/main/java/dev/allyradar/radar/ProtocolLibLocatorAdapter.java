@@ -123,7 +123,7 @@ public final class ProtocolLibLocatorAdapter implements LocatorBarFilter {
             final PlayerPreferences targetPrefs = plugin.preferences(target);
             final Optional<TeamSummary> viewerTeam = plugin.team(viewer);
             final Optional<TeamSummary> targetTeam = plugin.team(target);
-            final boolean publicEnabled = plugin.getConfig().getBoolean("public-radar-enabled", false);
+            final boolean publicEnabled = plugin.getConfig().getBoolean("public-radar-enabled", true);
 
             final boolean canTrack = RadarPolicy.canTrack(
                     viewer.getUniqueId(),
