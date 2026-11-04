@@ -17,7 +17,10 @@ AllyRadar is an open-source Paper plugin for persistent teams and consent-based 
 - Three independent sharing modes: `PRIVATE`, `TEAM`, and `PUBLIC`.
 - Receiver-controlled radar on/off preference.
 - Owner-controlled team radar on/off setting.
-- Filtered action-bar radar showing names, relative direction, and rounded distance.
+- Filtered action-bar and Adventure BossBar radar showing names, relative direction, and rounded distance.
+- Configurable HUD display modes: `ACTION_BAR`, `BOSS_BAR`, `BOTH`, and `DISABLED` to mitigate conflicts with other plugins.
+- Centralized fail-closed authorization engine with immediate revocation on commands, world change, and disconnect.
+- Effective visibility guarantee: TEAM visibility without an active team strictly behaves as PRIVATE.
 - Same-dimension filtering and configurable maximum range.
 - SQLite persistence with prepared statements, foreign keys, indexes, and migration tracking.
 - In-memory preference/team cache to avoid SQLite queries during every radar refresh.
