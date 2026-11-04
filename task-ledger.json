@@ -47,6 +47,12 @@
       "title": "Native Locator Bar Privacy Protection, ProtocolLib Adapter, Solo Controls & Comprehensive Setup Guide",
       "status": "completed",
       "summary": "Implemented dual-layer native locator bar privacy protection: 1) Bukkit Attribute synchronization zeroes WAYPOINT_TRANSMIT_RANGE for private and solo players and WAYPOINT_RECEIVE_RANGE when radar is disabled; 2) Optional ProtocolLib packet adapter (ProtocolLibLocatorAdapter) intercepts TRACKED_WAYPOINT packets to filter per-recipient dots so only teammates see each other on the XP bar; 3) Enhanced solo player location controls with dedicated chat confirmations; 4) Created docs/setup.md complete operational and installation guide. All 68 tests passing. SHA256: 8F7D6C21D82DA6BD13D5FE3A54162200A8E9313C99595193EF0B20826D213D92."
+    },
+    {
+      "milestoneId": "m8-public-radar-fix-and-command-usability-overhaul",
+      "title": "Public Radar Activation, Crystal-Clear /ally Status & Command Usability Overhaul",
+      "status": "completed",
+      "summary": "Fixed public radar tracking by defaulting public-radar-enabled to true across configuration, providers, and packet filters so solo players setting /ally public can immediately see each other; redesigned /ally status with high-clarity color-coded outputs answering team, visibility, and radar screen state; overhauled command feedback on all toggles; added aliases /ally join, /ally delete, /ally hide; handled solo owner leave auto-disband. All 70 unit and integration tests passing. SHA256: 948C8699CD2B4E778072A35B5A7096F8D9186A29D251FBBD13EBD728108125BF."
     }
   ],
   "tasks": []
