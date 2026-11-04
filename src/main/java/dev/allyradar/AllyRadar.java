@@ -59,6 +59,7 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         registerCommand("ally", command);
         registerCommand("team", command);
         registerCommand("radar", command);
+        registerCommand("a", command);
         getServer().getPluginManager().registerEvents(this, this);
         radarTask = getServer().getScheduler().runTaskTimer(this, () ->
                 getServer().getOnlinePlayers().forEach(radarProvider::render),
