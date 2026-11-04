@@ -101,9 +101,14 @@ class LocatorBarPrivacyTest {
         assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, enemyTeam,
                 Optional.of(teamA), Optional.of(teamB), false));
 
-        // Teamless neutral player is hidden
+        // Teamless neutral player is hidden when team visibility is selected
         assertFalse(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, teammateTeam,
                 Optional.of(teamA), Optional.empty(), false));
+
+        // Solo player with PUBLIC visibility is tracked by another solo player when public radar is enabled
+        final PlayerPreferences soloPublic = new PlayerPreferences(VisibilityMode.PUBLIC, true);
+        assertTrue(RadarPolicy.canTrack(viewerUuid, targetUuid, receiverOn, soloPublic,
+                Optional.empty(), Optional.empty(), true), "Solo players with PUBLIC visibility must be trackable when public radar is enabled");
     }
 
     private double calculateTransmitRange(final VisibilityMode effective, final boolean filterActive) {
