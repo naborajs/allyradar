@@ -8,8 +8,11 @@ description: Privacy-preserving team management and teammate radar for Paper.
 commands:
   ally:
     description: Manage AllyRadar teams and radar.
-    usage: /ally [help|create|invite|accept|deny|leave|list|info|radar|status]
-    aliases: [allyradar, ar]
+    usage: /ally [help|create|invite|accept|deny|leave|list|info|status|hud|radius]
+    aliases: [allyradar, ar, a]
+  a:
+    description: Quick shorthand for /ally (perfect for Bedrock touch & controller players).
+    usage: /a [on|off|hud|radius|public|private|accept|leave|status|bedrock]
   team:
     description: Manage your AllyRadar team.
     usage: /team <create|invite|accept|deny|leave|kick|transfer|info|list|disband|settings>
