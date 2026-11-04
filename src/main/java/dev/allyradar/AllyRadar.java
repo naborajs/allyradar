@@ -5,21 +5,27 @@ import dev.allyradar.model.PlayerPreferences;
 import dev.allyradar.model.TeamSummary;
 import dev.allyradar.model.VisibilityMode;
 import dev.allyradar.radar.ActionBarRadarProvider;
+import dev.allyradar.radar.BossBarRadarProvider;
+import dev.allyradar.radar.CompositeRadarProvider;
+import dev.allyradar.radar.DisabledRadarProvider;
 import dev.allyradar.radar.RadarCompatibilityProvider;
 import dev.allyradar.storage.AllyRepository;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.Optional;
-import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRadarProvider.AllyRadarAccess {
     private AllyRepository repository;
@@ -29,8 +35,8 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
     private long invitationExpirationHours;
     private long radarUpdateIntervalTicks;
     private double radarMaxDistance;
-    private final Map<UUID, PlayerPreferences> preferenceCache = new HashMap<>();
-    private final Map<UUID, Optional<TeamSummary>> teamCache = new HashMap<>();
+    private final Map<UUID, PlayerPreferences> preferenceCache = new ConcurrentHashMap<>();
+    private final Map<UUID, Optional<TeamSummary>> teamCache = new ConcurrentHashMap<>();
 
     @Override
     public void onEnable() {
@@ -43,9 +49,7 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         repository = new AllyRepository(this, getConfig().getString("database-file", "allyradar.db"),
                 defaultVisibility, getConfig().getBoolean("default-radar-enabled", true),
                 getConfig().getBoolean("default-team-radar-enabled", true));
-        radarProvider = new ActionBarRadarProvider(this, this,
-                radarMaxDistance,
-                getConfig().getBoolean("public-radar-enabled", false));
+        radarProvider = createRadarProvider(getConfig().getString("radar-display-mode", "ACTION_BAR"));
         final AllyRadarCommand command = new AllyRadarCommand(this);
         registerCommand("allyradar", command);
         registerCommand("team", command);
@@ -92,15 +96,66 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
 
     @EventHandler
     public void onJoin(final PlayerJoinEvent event) {
-        clearCaches();
         preferences(event.getPlayer());
+        invalidateAndRefreshAll();
     }
 
     @EventHandler
     public void onQuit(final PlayerQuitEvent event) {
-        radarProvider.clear(event.getPlayer());
+        if (radarProvider != null) {
+            radarProvider.clear(event.getPlayer());
+        }
         preferenceCache.remove(event.getPlayer().getUniqueId());
         teamCache.remove(event.getPlayer().getUniqueId());
+        if (isEnabled()) {
+            getServer().getScheduler().runTask(this, this::invalidateAndRefreshAll);
+        }
+    }
+
+    @EventHandler
+    public void onWorldChange(final PlayerChangedWorldEvent event) {
+        if (radarProvider != null) {
+            radarProvider.clear(event.getPlayer());
+        }
+        invalidateAndRefreshAll();
+    }
+
+    public void invalidateAndRefreshAll() {
+        clearCaches();
+        if (radarProvider != null && isEnabled()) {
+            for (final Player player : getServer().getOnlinePlayers()) {
+                radarProvider.render(player);
+            }
+        }
+    }
+
+    public void reloadRadarConfig() {
+        maximumTeamSize = Math.max(2, getConfig().getInt("max-team-size", 10));
+        invitationExpirationHours = Math.max(1L, getConfig().getLong("invitation-expiration-hours", 48L));
+        radarMaxDistance = Math.max(1.0, getConfig().getDouble("radar-max-distance", 1000.0));
+        if (radarProvider != null) {
+            getServer().getOnlinePlayers().forEach(radarProvider::clear);
+        }
+        radarProvider = createRadarProvider(getConfig().getString("radar-display-mode", "ACTION_BAR"));
+        invalidateAndRefreshAll();
+    }
+
+    public RadarCompatibilityProvider createRadarProvider(final String mode) {
+        final boolean publicRadar = getConfig().getBoolean("public-radar-enabled", false);
+        final String normalized = mode == null ? "ACTION_BAR" : mode.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "BOSS_BAR" -> new BossBarRadarProvider(this, this, radarMaxDistance, publicRadar);
+            case "BOTH" -> new CompositeRadarProvider(List.of(
+                    new ActionBarRadarProvider(this, this, radarMaxDistance, publicRadar),
+                    new BossBarRadarProvider(this, this, radarMaxDistance, publicRadar)
+            ));
+            case "DISABLED" -> new DisabledRadarProvider();
+            case "ACTION_BAR" -> new ActionBarRadarProvider(this, this, radarMaxDistance, publicRadar);
+            default -> {
+                getLogger().warning("Unknown radar-display-mode: " + mode + "; defaulting to ACTION_BAR.");
+                yield new ActionBarRadarProvider(this, this, radarMaxDistance, publicRadar);
+            }
+        };
     }
 
     public AllyRepository repository() {
