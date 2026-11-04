@@ -187,4 +187,27 @@ class AllyRepositoryTest {
             assertTrue(repository.teamOf(owner).isPresent());
         }
     }
+
+    @Test
+    void hudAndCustomRadiusPreferencesPersistInSqlite() {
+        final File database = temporaryDirectory.resolve("hud_radius.db").toFile();
+        final UUID player = UUID.randomUUID();
+        try (AllyRepository repository = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            final PlayerPreferences defaults = repository.preferences(player);
+            assertTrue(defaults.hudEnabled(), "HUD should be enabled by default");
+            assertEquals(0.0, defaults.customRadius(), "Custom radius should be 0.0 by default");
+
+            repository.setHudEnabled(player, false);
+            repository.setCustomRadius(player, 125.0);
+
+            final PlayerPreferences updated = repository.preferences(player);
+            assertFalse(updated.hudEnabled());
+            assertEquals(125.0, updated.customRadius());
+        }
+        try (AllyRepository reopened = new AllyRepository(database, VisibilityMode.TEAM, true)) {
+            final PlayerPreferences persisted = reopened.preferences(player);
+            assertFalse(persisted.hudEnabled());
+            assertEquals(125.0, persisted.customRadius());
+        }
+    }
 }
