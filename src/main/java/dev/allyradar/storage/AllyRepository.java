@@ -309,21 +309,59 @@ public final class AllyRepository implements AutoCloseable {
         }
     }
 
+    public synchronized List<String> pendingInvitations(final UUID player, final String playerName) {
+        final List<String> teams = new ArrayList<>();
+        try (PreparedStatement query = connection.prepareStatement("""
+                SELECT t.name FROM invitations i JOIN teams t ON t.id = i.team_id
+                WHERE (i.player_uuid = ? OR (i.player_name != '' AND LOWER(i.player_name) = LOWER(?)))
+                  AND i.expires_at > ?
+                ORDER BY i.expires_at DESC
+                """)) {
+            query.setString(1, player != null ? player.toString() : "");
+            query.setString(2, playerName != null ? playerName : "");
+            query.setLong(3, Instant.now().toEpochMilli());
+            try (ResultSet result = query.executeQuery()) {
+                while (result.next()) {
+                    teams.add(result.getString(1));
+                }
+            }
+        } catch (SQLException exception) {
+            throw failure("Could not load invitations", exception);
+        }
+        return teams;
+    }
+
     public synchronized TeamSummary accept(final UUID player, final String teamName, final String playerName,
                                             final int maximumSize) {
         if (teamOf(player).isPresent()) {
             throw new IllegalArgumentException("You are already in a team.");
+        }
+        final String targetTeamName;
+        if (teamName == null || teamName.isBlank()) {
+            final List<String> pending = pendingInvitations(player, playerName);
+            if (pending.isEmpty()) {
+                throw new IllegalArgumentException("You have no pending team invitations.");
+            }
+            if (pending.size() > 1) {
+                throw new IllegalArgumentException("You have invitations from multiple teams: "
+                        + String.join(", ", pending) + ". Use /team accept <teamName>.");
+            }
+            targetTeamName = pending.getFirst();
+        } else {
+            targetTeamName = teamName.trim();
         }
         try {
             connection.setAutoCommit(false);
             final long teamId;
             try (PreparedStatement query = connection.prepareStatement("""
                     SELECT i.team_id FROM invitations i JOIN teams t ON t.id = i.team_id
-                    WHERE i.player_uuid = ? AND t.name = ? AND i.expires_at > ?
+                    WHERE (i.player_uuid = ? OR (i.player_name != '' AND LOWER(i.player_name) = LOWER(?)))
+                      AND LOWER(t.name) = LOWER(?) AND i.expires_at > ?
                     """)) {
                 query.setString(1, player.toString());
-                query.setString(2, teamName.trim());
-                query.setLong(3, Instant.now().toEpochMilli());
+                query.setString(2, playerName != null ? playerName : "");
+                query.setString(3, targetTeamName);
+                query.setLong(4, Instant.now().toEpochMilli());
                 try (ResultSet result = query.executeQuery()) {
                     if (!result.next()) {
                         throw new IllegalArgumentException("No active invitation was found for that team.");
@@ -335,10 +373,13 @@ public final class AllyRepository implements AutoCloseable {
                 throw new IllegalArgumentException("The team is full.");
             }
             addMember(teamId, player, playerName);
-            try (PreparedStatement delete = connection.prepareStatement(
-                    "DELETE FROM invitations WHERE team_id = ? AND player_uuid = ?")) {
+            try (PreparedStatement delete = connection.prepareStatement("""
+                    DELETE FROM invitations WHERE team_id = ?
+                    AND (player_uuid = ? OR (player_name != '' AND LOWER(player_name) = LOWER(?)))
+                    """)) {
                 delete.setLong(1, teamId);
                 delete.setString(2, player.toString());
+                delete.setString(3, playerName != null ? playerName : "");
                 delete.executeUpdate();
             }
             connection.commit();
@@ -352,12 +393,32 @@ public final class AllyRepository implements AutoCloseable {
     }
 
     public synchronized void deny(final UUID player, final String teamName) {
+        deny(player, teamName, "");
+    }
+
+    public synchronized void deny(final UUID player, final String teamName, final String playerName) {
+        final String targetTeamName;
+        if (teamName == null || teamName.isBlank()) {
+            final List<String> pending = pendingInvitations(player, playerName);
+            if (pending.isEmpty()) {
+                throw new IllegalArgumentException("You have no pending team invitations.");
+            }
+            if (pending.size() > 1) {
+                throw new IllegalArgumentException("You have invitations from multiple teams: "
+                        + String.join(", ", pending) + ". Use /team deny <teamName>.");
+            }
+            targetTeamName = pending.getFirst();
+        } else {
+            targetTeamName = teamName.trim();
+        }
         try (PreparedStatement delete = connection.prepareStatement("""
-                DELETE FROM invitations WHERE player_uuid = ?
-                AND team_id = (SELECT id FROM teams WHERE name = ?)
+                DELETE FROM invitations
+                WHERE (player_uuid = ? OR (player_name != '' AND LOWER(player_name) = LOWER(?)))
+                AND team_id = (SELECT id FROM teams WHERE LOWER(name) = LOWER(?))
                 """)) {
             delete.setString(1, player.toString());
-            delete.setString(2, teamName.trim());
+            delete.setString(2, playerName != null ? playerName : "");
+            delete.setString(3, targetTeamName);
             delete.executeUpdate();
         } catch (SQLException exception) {
             throw failure("Could not deny invitation", exception);
