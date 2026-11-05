@@ -12,6 +12,7 @@ import dev.allyradar.radar.LocatorBarFilter;
 import dev.allyradar.radar.RadarCompatibilityProvider;
 import dev.allyradar.radar.RadarPolicy;
 import dev.allyradar.storage.AllyRepository;
+import dev.allyradar.util.BedrockUtil;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.PluginCommand;
@@ -120,31 +121,36 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
 
     @EventHandler
     public void onJoin(final PlayerJoinEvent event) {
-        preferences(event.getPlayer());
-        updatePlayerAttributes(event.getPlayer());
-        invalidateAndRefreshAll();
+        final Player player = event.getPlayer();
+        preferences(player);
+        team(player);
+        updatePlayerAttributes(player);
+        if (radarProvider != null) {
+            radarProvider.render(player);
+        }
     }
 
     @EventHandler
     public void onQuit(final PlayerQuitEvent event) {
+        final Player player = event.getPlayer();
         if (radarProvider != null) {
-            radarProvider.clear(event.getPlayer());
+            radarProvider.clear(player);
         }
-        restoreDefaultAttributes(event.getPlayer());
-        preferenceCache.remove(event.getPlayer().getUniqueId());
-        teamCache.remove(event.getPlayer().getUniqueId());
-        if (isEnabled()) {
-            getServer().getScheduler().runTask(this, this::invalidateAndRefreshAll);
-        }
+        restoreDefaultAttributes(player);
+        preferenceCache.remove(player.getUniqueId());
+        teamCache.remove(player.getUniqueId());
     }
 
     @EventHandler
     public void onWorldChange(final PlayerChangedWorldEvent event) {
+        final Player player = event.getPlayer();
         if (radarProvider != null) {
-            radarProvider.clear(event.getPlayer());
+            radarProvider.clear(player);
         }
-        updatePlayerAttributes(event.getPlayer());
-        invalidateAndRefreshAll();
+        updatePlayerAttributes(player);
+        if (radarProvider != null) {
+            radarProvider.render(player);
+        }
     }
 
     public void invalidateAndRefreshAll() {
@@ -189,10 +195,13 @@ public final class AllyRadar extends JavaPlugin implements Listener, ActionBarRa
         }
 
         // 2. Waypoint Receive Range: Controls whether this player receives any waypoints on their Locator Bar
+        // PERFORMANCE & BEDROCK FIX: Bedrock Edition does not have Java 1.21.6 XP-bar locator dots!
+        // Setting receive range to 0.0 for Bedrock clients stops Paper from generating waypoint packets,
+        // preventing Geyser UDP packet flooding, MTU fragmentation, high ping, and network disconnects.
         try {
             final AttributeInstance receive = player.getAttribute(Attribute.WAYPOINT_RECEIVE_RANGE);
             if (receive != null) {
-                if (!prefs.radarEnabled()) {
+                if (BedrockUtil.isBedrockPlayer(player) || !prefs.radarEnabled()) {
                     receive.setBaseValue(0.0);
                 } else {
                     receive.setBaseValue(60000000.0);
