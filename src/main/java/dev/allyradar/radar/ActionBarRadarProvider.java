@@ -2,6 +2,7 @@ package dev.allyradar.radar;
 
 import dev.allyradar.model.PlayerPreferences;
 import dev.allyradar.model.TeamSummary;
+import dev.allyradar.util.BedrockUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -23,6 +25,8 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
     private final double maxDistance;
     private final boolean publicRadarEnabled;
     private final Set<UUID> activeHudViewers = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Map<UUID, String> lastSentMessage = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastSentTimestamp = new ConcurrentHashMap<>();
 
     public ActionBarRadarProvider(final JavaPlugin plugin, final AllyRadarAccess access,
                                   final double maxDistance, final boolean publicRadarEnabled) {
@@ -69,13 +73,16 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
                     relativeBearing(viewer.getLocation(), target.getLocation())));
         }
         visible.sort(Comparator.comparingDouble(TrackedResult::distance));
+        final UUID viewerUuid = viewer.getUniqueId();
         if (visible.isEmpty()) {
-            if (activeHudViewers.remove(viewer.getUniqueId())) {
+            if (activeHudViewers.remove(viewerUuid)) {
+                lastSentMessage.remove(viewerUuid);
+                lastSentTimestamp.remove(viewerUuid);
                 viewer.sendActionBar(Component.text(" "));
             }
             return;
         }
-        activeHudViewers.add(viewer.getUniqueId());
+
         final StringBuilder message = new StringBuilder("Radar ");
         for (int index = 0; index < Math.min(visible.size(), 4); index++) {
             if (index > 0) {
@@ -88,12 +95,33 @@ public final class ActionBarRadarProvider implements RadarCompatibilityProvider 
         if (visible.size() > 4) {
             message.append(" +").append(visible.size() - 4);
         }
-        viewer.sendActionBar(Component.text(message.toString(), NamedTextColor.AQUA));
+
+        final String messageText = message.toString();
+        final String previous = lastSentMessage.get(viewerUuid);
+        final long now = System.currentTimeMillis();
+        final long lastTime = lastSentTimestamp.getOrDefault(viewerUuid, 0L);
+        final boolean isBedrock = BedrockUtil.isBedrockPlayer(viewer);
+        final long refreshIntervalMs = isBedrock ? 3500L : 2000L;
+
+        // NETWORK OPTIMIZATION:
+        // Do not flood the client with duplicate action-bar packets when content has not changed.
+        // This is crucial for Bedrock clients (Geyser) running over UDP RakNet to eliminate packet congestion.
+        if (messageText.equals(previous) && (now - lastTime < refreshIntervalMs)) {
+            return;
+        }
+
+        lastSentMessage.put(viewerUuid, messageText);
+        lastSentTimestamp.put(viewerUuid, now);
+        activeHudViewers.add(viewerUuid);
+        viewer.sendActionBar(Component.text(messageText, NamedTextColor.AQUA));
     }
 
     @Override
     public void clear(final Player viewer) {
-        activeHudViewers.remove(viewer.getUniqueId());
+        final UUID uuid = viewer.getUniqueId();
+        activeHudViewers.remove(uuid);
+        lastSentMessage.remove(uuid);
+        lastSentTimestamp.remove(uuid);
         viewer.sendActionBar(Component.text(" "));
     }
 
