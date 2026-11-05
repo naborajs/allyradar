@@ -22,6 +22,7 @@ public final class BossBarRadarProvider implements RadarCompatibilityProvider {
     private final double maxDistance;
     private final boolean publicRadarEnabled;
     private final Map<UUID, BossBar> activeBars = new ConcurrentHashMap<>();
+    private final Map<UUID, String> lastBossBarTitle = new ConcurrentHashMap<>();
 
     public BossBarRadarProvider(final JavaPlugin plugin, final ActionBarRadarProvider.AllyRadarAccess access,
                                 final double maxDistance, final boolean publicRadarEnabled) {
@@ -85,19 +86,26 @@ public final class BossBarRadarProvider implements RadarCompatibilityProvider {
             message.append(" +").append(visible.size() - 4);
         }
 
-        final Component title = Component.text(message.toString(), NamedTextColor.AQUA);
-        final BossBar bar = activeBars.get(viewer.getUniqueId());
+        final String messageText = message.toString();
+        final UUID viewerUuid = viewer.getUniqueId();
+        final BossBar bar = activeBars.get(viewerUuid);
         if (bar != null) {
-            bar.name(title);
+            final String prev = lastBossBarTitle.get(viewerUuid);
+            if (!messageText.equals(prev)) {
+                lastBossBarTitle.put(viewerUuid, messageText);
+                bar.name(Component.text(messageText, NamedTextColor.AQUA));
+            }
         } else {
-            final BossBar newBar = BossBar.bossBar(title, 1.0f, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
-            activeBars.put(viewer.getUniqueId(), newBar);
+            lastBossBarTitle.put(viewerUuid, messageText);
+            final BossBar newBar = BossBar.bossBar(Component.text(messageText, NamedTextColor.AQUA), 1.0f, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            activeBars.put(viewerUuid, newBar);
             viewer.showBossBar(newBar);
         }
     }
 
     @Override
     public void clear(final Player viewer) {
+        lastBossBarTitle.remove(viewer.getUniqueId());
         final BossBar bar = activeBars.remove(viewer.getUniqueId());
         if (bar != null) {
             viewer.hideBossBar(bar);
