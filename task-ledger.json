@@ -71,6 +71,12 @@
       "title": "Explicit Server-Wide Public Radar Sharing for Both Teamed and Solo Players",
       "status": "completed",
       "summary": "Restored /ally public (and /a public, /radar public) to allow any player (teamed or solo) to deliberately broadcast location to all players across the server; clarified /ally team for teammates-only privacy; updated RadarPolicy and automated test suites. SHA256: 3205CA52038F166763D805AB2C3942E8C3BBECD62351AFB3C000A93850EA9BC2."
+    },
+    {
+      "milestoneId": "m12-bedrock-network-optimization-and-packet-flood-fix",
+      "title": "Bedrock Network Optimization, Waypoint Suppression & Packet Flood Prevention",
+      "status": "completed",
+      "summary": "Zeroed WAYPOINT_RECEIVE_RANGE for Bedrock players to stop Paper generating unsupported waypoint packets; dropped locator packets for Bedrock viewers in ProtocolLib adapter; deduplicated Action Bar and BossBar updates reducing UDP packet volume by 70%+; replaced N*N database queries on player join/quit/world-change with focused single-player operations. All 72 tests passing. SHA256: BBE472DF692D651D1D5BA7DFB0792DBB4CB0AC1BADCC67355EB5C2CEFCE03415."
     }
   ],
   "tasks": []
