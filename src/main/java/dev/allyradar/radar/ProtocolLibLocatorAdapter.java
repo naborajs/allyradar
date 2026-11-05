@@ -9,6 +9,7 @@ import com.comphenix.protocol.events.PacketEvent;
 import dev.allyradar.AllyRadar;
 import dev.allyradar.model.PlayerPreferences;
 import dev.allyradar.model.TeamSummary;
+import dev.allyradar.util.BedrockUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -83,6 +84,15 @@ public final class ProtocolLibLocatorAdapter implements LocatorBarFilter {
         }
         final Player viewer = event.getPlayer();
         if (viewer == null || !viewer.isOnline()) {
+            return;
+        }
+
+        // Drop waypoint packets for Bedrock players immediately:
+        // Bedrock Edition does not have the Java 1.21.6 XP-bar locator dots.
+        // Dropping them here eliminates Geyser translation overhead, UDP packet fragmentation,
+        // and RakNet network disconnect errors.
+        if (BedrockUtil.isBedrockPlayer(viewer)) {
+            event.setCancelled(true);
             return;
         }
 
